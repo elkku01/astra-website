@@ -1,0 +1,93 @@
+:root {
+  --bg: #000000;
+  --panel: #121212;
+  --panel-2: #161616;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(62, 196, 245, 0.35);
+  --text: #ffffff;
+  --muted: #9ca3af;
+  --faint: #6b7280;
+  --cyan: #3ec4f5;
+  --cyan-deep: #1aa8dc;
+  --cyan-dim: rgba(62, 196, 245, 0.12);
+  --success: #3ecf8e;
+  --shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+  --sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --display: 'Outfit', 'Segoe UI Variable Display', 'Segoe UI', sans-serif;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+a {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: rgba(62, 196, 245, 0.28);
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
