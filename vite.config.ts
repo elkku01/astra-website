@@ -3,7 +3,7 @@ import path from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
-import { cosmeticsStoreApi } from './server/cosmeticsStore'
+import { cosmeticsStoreApi } from './server/cosmeticsStore.ts'
 
 const CSP = [
   "default-src 'self'",
