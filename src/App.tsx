@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   DOWNLOAD_LABEL,
   DOWNLOAD_META,
@@ -12,114 +13,98 @@ function asset(path: string) {
 
 const NAV = [
   { href: '#features', label: 'Features' },
-  { href: '#mods', label: 'Mods' },
-  { href: '#speed', label: 'Speed' },
-  { href: '#look', label: 'Look' },
   { href: '#faq', label: 'FAQ' },
 ]
 
 const SHOTS = [
   {
-    src: asset('/images/screenshots/launcher-home.png'),
+    src: asset('/images/screenshots/launcher-home.jpg'),
     alt: 'Astra launcher home with Launch',
   },
   {
-    src: asset('/images/screenshots/launcher-mods.png'),
-    alt: 'Astra Mods page with Modrinth search',
+    src: asset('/images/screenshots/launcher-instances.png'),
+    alt: 'Astra instances, including an import from Lunar',
   },
   {
-    src: asset('/images/screenshots/game-title.jpg'),
-    alt: 'Custom Astra Minecraft title screen',
+    src: asset('/images/screenshots/launcher-friends.png'),
+    alt: 'Astra friends list and chat',
   },
   {
-    src: asset('/images/screenshots/client-home.png'),
-    alt: 'In-game Astra Options hub',
+    src: asset('/images/screenshots/launcher-settings.png'),
+    alt: 'Astra launcher settings',
   },
   {
-    src: asset('/images/screenshots/client-sprint.png'),
-    alt: 'Toggle Sprint module options',
+    src: asset('/images/screenshots/client-cosmetics.png'),
+    alt: 'In-game Astra cloaks and cosmetics',
   },
 ]
 
 const STATS = [
-  { value: '18+', label: 'Built-in modules' },
-  { value: '2–3s', label: 'to the title screen' },
-  { value: '2', label: 'Minecraft versions' },
-  { value: '1', label: 'Download, client included' },
+  { value: '3', label: 'Minecraft versions' },
+  { value: 'HUD', label: 'Modules you can move' },
+  { value: 'Discord', label: 'Friends and chat' },
+  { value: '1', label: 'Installer, client included' },
 ]
 
 const FEATURES = [
   {
-    icon: '⚡',
-    title: 'Lightspeed launch',
-    body: 'Press Launch and you are in the world in about 2–3 seconds. No long vanilla splash, no waiting on a heavy client.',
+    title: 'One-click play',
+    body: '1.8.9 on Forge with OptiFine, plus 1.21.5 and 1.21.11 on Fabric. Microsoft sign-in, guest play, and multiple accounts. Java is installed for you.',
   },
   {
-    icon: '▣',
-    title: 'Custom HUD',
-    body: 'FPS, CPS, ping, armor, potions, day, pack display — drag them anywhere from Edit HUD Layout.',
+    title: 'Astra Client',
+    body: 'Ships with every supported version. Custom HUD, cleaner nametags, and tools built for Hypixel-style PvP. It stays installed through launcher updates.',
   },
   {
-    icon: '✦',
-    title: 'Astra Options',
-    body: 'Esc opens a full in-game hub. Toggle modules, set keybinds, and style every HUD piece.',
+    title: 'Performance',
+    body: 'One switch for optimizations. Modern versions get a Sodium-style PvP stack; 1.8.9 gets OptiFine. Enable shaders and the loader is installed for you.',
   },
   {
-    icon: '⌘',
-    title: 'Mod Browser',
-    body: 'Search Modrinth and install extras in one click, or drop a .jar onto the Mods page.',
+    title: 'Instances',
+    body: 'Create, duplicate, export, and import. Bring Lunar, Prism, Modrinth, CurseForge, and more. Mods, packs, shaders, and worlds stay in one place.',
   },
   {
-    icon: '◎',
-    title: 'Two eras',
-    body: 'Fabric 1.21.5 and Forge 1.8.9 in one launcher. Loaders, API, and Astra Client are handled for you.',
+    title: 'Mods and content',
+    body: 'Search Modrinth and CurseForge for mods, resource packs, and shaders. Duplicate and version checks run before anything breaks an instance.',
   },
   {
-    icon: '+',
-    title: 'One download',
-    body: 'The installer is the launcher. Astra Client syncs on Launch — no separate jar hunt.',
+    title: 'Friends and cloaks',
+    body: 'Sign in with Discord, chat, and see who is in Astra, in game, or on Lunar. Cloaks from the store show in the client.',
   },
 ]
 
 const BUNDLED = [
-  { name: 'Astra Client', tag: 'Included', tone: 'in' },
-  { name: 'Sodium stack', tag: '1.21.5', tone: 'in' },
-  { name: 'OptiFine HD U M5', tag: '1.8.9', tone: 'in' },
-  { name: 'Fabric API', tag: 'Required', tone: 'req' },
-  { name: 'Modrinth extras', tag: '+ Add', tone: 'add' },
-]
-
-const LAUNCH_ROWS = [
-  { name: 'Official launcher', time: '18s', width: '100%' },
-  { name: 'Lunar Client', time: '12s', width: '67%' },
-  { name: 'Dawn', time: '11s', width: '61%' },
-  { name: 'Astra', time: '2–3s', width: '16%', accent: true },
+  { name: 'Astra Client', tag: 'Every version', tone: 'in' },
+  { name: 'OptiFine', tag: '1.8.9', tone: 'in' },
+  { name: 'Sodium stack', tag: '1.21.5 / 1.21.11', tone: 'in' },
+  { name: 'Iris / OptiFine shaders', tag: 'On demand', tone: 'req' },
+  { name: 'Modrinth + CurseForge', tag: 'Browse', tone: 'add' },
 ]
 
 const FAQ = [
   {
-    q: 'What is Astra Client?',
-    a: 'A lightweight in-game client built into Astra. HUD modules, extra options, and quality-of-life features — it runs inside Minecraft, not in the launcher.',
+    q: 'What is Astra?',
+    a: 'A compact Windows launcher with Astra Client built in. Play, instances, friends, and settings in one window — HUD, cloaks, and performance mods in game.',
   },
   {
     q: 'Do I download the client separately?',
-    a: 'No. Download the launcher and you get Astra Client with it. On Launch, the matching jar is synced into the mods folder.',
+    a: 'No. The installer is the launcher. Astra Client ships with every supported version and stays installed through updates.',
   },
   {
     q: 'Which versions are supported?',
-    a: '1.21.5 on Fabric and 1.8.9 on Forge. Those two, fully set up.',
+    a: 'Minecraft 1.8.9 (Forge + OptiFine), 1.21.5 (Fabric), and 1.21.11 (Fabric). Loaders and Java are handled for you.',
+  },
+  {
+    q: 'Can I import Lunar or another launcher?',
+    a: 'Yes. Lunar, Prism, MultiMC, PolyMC, the Modrinth App, CurseForge, ATLauncher, GDLauncher, and Frost. Astra brings in the instance, version, mods, packs, and shaders.',
   },
   {
     q: 'Is this a cheat client?',
-    a: 'No. Astra is HUD and utility: sprint, zoom, chat tools, hitbox overlays, 1.7 visuals, and movable stats. There is no combat cheating.',
-  },
-  {
-    q: 'How do I open it in game?',
-    a: 'Press Esc, then open Astra Options. Use Options for keybinds and Edit HUD Layout to move pieces.',
+    a: 'No. Astra is HUD, cosmetics, and quality-of-life — sprint, zoom, nametags, hitboxes, 1.7 visuals. There is no combat cheating.',
   },
   {
     q: 'What do I need to play?',
-    a: 'A Microsoft account for Minecraft Java Edition, and Windows. Astra downloads the right Java for 1.21.5 or 1.8.9 automatically the first time you press Launch.',
+    a: 'Windows, and a Microsoft account for Java Edition if you want online play. Guest play works too. Astra downloads the right Java the first time you press Launch.',
   },
 ]
 
@@ -155,6 +140,12 @@ function App() {
               {item.label}
             </a>
           ))}
+          <Link to="/store" viewTransition>
+            Cloaks
+          </Link>
+          <Link to="/status" viewTransition>
+            Status
+          </Link>
         </nav>
         <button type="button" className="nav-cta" onClick={handleDownload}>
           Download
@@ -169,8 +160,8 @@ function App() {
             <span className="hero-sub">Minecraft Client</span>
           </h1>
           <p className="hero-lead">
-            A modern Minecraft client built around speed, customization, and
-            simplicity. Title screen in about 2–3 seconds.
+            Launcher, client, and cloaks in one download. Play 1.8.9, 1.21.5, and
+            1.21.11 — then keep your HUD, friends, and instances in the same place.
           </p>
           <div className="hero-actions">
             <button type="button" className="btn-primary" onClick={handleDownload}>
@@ -182,13 +173,13 @@ function App() {
             </a>
           </div>
           <p className="hero-meta">
-            Supports 1.21.5 Fabric &amp; 1.8.9 Forge · Launcher + client
+            Windows · Microsoft or guest · Java installs on Launch
           </p>
         </section>
 
         <section className="carousel wrap" aria-label="Product screenshots">
           <div className="carousel-frame">
-            <img src={current.src} alt={current.alt} />
+            <img key={current.src} src={current.src} alt={current.alt} />
             <button
               type="button"
               className="carousel-next"
@@ -225,19 +216,16 @@ function App() {
         <section className="section wrap" id="features">
           <p className="kicker">What&apos;s inside</p>
           <h2>
-            Everything you use.
-            <span> Nothing you lose.</span>
+            Play, customize,
+            <span> stay in control.</span>
           </h2>
           <p className="section-lead">
-            Astra ships with the launcher, the client, and performance mods. No
-            manual file installs.
+            One installer. The launcher, Astra Client, and performance stack
+            arrive together.
           </p>
           <div className="feature-panel">
             {FEATURES.map((feature) => (
               <article key={feature.title}>
-                <span className="feat-icon" aria-hidden="true">
-                  {feature.icon}
-                </span>
                 <h3>{feature.title}</h3>
                 <p>{feature.body}</p>
               </article>
@@ -247,13 +235,15 @@ function App() {
 
         <section className="split wrap" id="mods">
           <div>
-            <p className="kicker">Mod browser</p>
+            <p className="kicker">Mods and content</p>
             <h2>
-              Install mods
-              <span> in seconds.</span>
+              Modrinth and CurseForge
+              <span> in the launcher.</span>
             </h2>
             <p className="section-lead">
-              Browse, enable, and configure extras directly inside Astra.
+              Install mods, resource packs, and shaders. Enable or disable them
+              without deleting files. Sync settings, packs, and servers across
+              1.8.9, 1.21.5, and 1.21.11.
             </p>
           </div>
           <div className="mod-card">
@@ -266,66 +256,33 @@ function App() {
           </div>
         </section>
 
-        <section className="split split-rev wrap" id="speed">
-          <div className="launch-card">
-            {LAUNCH_ROWS.map((row) => (
-              <div
-                key={row.name}
-                className={row.accent ? 'launch-row accent' : 'launch-row'}
-              >
-                <div className="launch-label">
-                  <span>{row.name}</span>
-                  <strong>{row.time}</strong>
-                </div>
-                <div className="launch-track">
-                  <i style={{ width: row.width }} />
-                </div>
-              </div>
-            ))}
-            <p className="launch-note">
-              Time to title screen after you press Launch. Shorter is better.
-            </p>
-          </div>
-          <div>
-            <p className="kicker">Speed</p>
-            <h2>
-              Lightspeed
-              <span> Minecraft boot.</span>
-            </h2>
-            <p className="section-lead">
-              Astra hits the title screen in about 2–3 seconds. Official, Lunar,
-              and Dawn still make you wait.
-            </p>
-          </div>
-        </section>
-
         <section className="section wrap" id="look">
           <p className="kicker">In game</p>
           <h2>
-            Your title screen.
-            <span> Your client.</span>
+            HUD, modules,
+            <span> and cloaks.</span>
           </h2>
           <p className="section-lead">
-            Custom menu on 1.8.9. Esc → Astra Options for HUD, keybinds, and
-            modules.
+            Open Mods for sprint, zoom, nametags, and movable HUD pieces. Open
+            Cosmetics for cloaks from the store.
           </p>
           <div className="look-grid">
             <img
-              src={asset('/images/screenshots/game-title.jpg')}
-              alt="Custom Astra title screen"
+              src={asset('/images/screenshots/client-home.png')}
+              alt="In-game Astra modules and HUD"
             />
             <img
-              src={asset('/images/screenshots/client-home.png')}
-              alt="Astra Options in game"
+              src={asset('/images/screenshots/client-cosmetics.png')}
+              alt="In-game Astra cloaks and cosmetics"
             />
           </div>
         </section>
 
         <section className="cta wrap" id="download">
-          <h2>Ready to play faster?</h2>
+          <h2>Ready to launch?</h2>
           <p>
-            Download Astra. The launcher and client arrive together — then
-            Launch.
+            Download Astra. The launcher, client, and Java setup arrive together —
+            then press Launch.
           </p>
           <button type="button" className="btn-primary btn-xl" onClick={handleDownload}>
             <WindowsIcon />
@@ -354,6 +311,14 @@ function App() {
           ASTRA
         </a>
         <p>
+          <Link to="/store" viewTransition>
+            Cloaks
+          </Link>
+          <span aria-hidden="true"> · </span>
+          <Link to="/status" viewTransition>
+            Status
+          </Link>
+          <span aria-hidden="true"> · </span>
           © 2026 Astra Client. Not affiliated with Mojang, Microsoft, Lunar, or
           Dawn.
         </p>
