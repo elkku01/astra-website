@@ -4,6 +4,7 @@ import {
   isFullCollection,
   knownCapeIds,
 } from '../src/store/fulfillment.ts'
+import { freeCapeIds } from '../src/store/capes.ts'
 
 type OwnedRecord = {
   uuid: string
@@ -180,7 +181,7 @@ function lookup(store: StoreFile, uuid: string, username: string): OwnedRecord {
   return {
     uuid: matches.find((record) => uuidKey(record.uuid))?.uuid || uuid,
     username: matches.find((record) => nameKey(record.username))?.username || username,
-    ownedCapeIds: [...new Set(matches.flatMap((record) => record.ownedCapeIds || []))],
+    ownedCapeIds: [...new Set([...matches.flatMap((record) => record.ownedCapeIds || []), ...freeCapeIds()])],
     collection: matches.some((record) => record.collection),
   }
 }
@@ -486,7 +487,11 @@ export default {
     }
 
     if (
-      (pathname === '/api/cosmetics/owned' || pathname === '/api/cosmetics' || pathname === '/v1/cosmetics') &&
+      (pathname === '/api/cosmetics/owned' ||
+        pathname === '/api/cosmetics' ||
+        pathname === '/v1/cosmetics' ||
+        pathname === '/api/v1/cosmetics' ||
+        pathname === '/api/v1/cosmetics/owned') &&
       request.method === 'GET'
     ) {
       const username = url.searchParams.get('username') || ''

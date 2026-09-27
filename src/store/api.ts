@@ -264,6 +264,7 @@ async function fetchOwnedFromStore(uuid: string, username: string): Promise<{
   if (username) query.set('username', username)
   const urls = [
     storeApiUrl(`/api/cosmetics/owned?${query}`),
+    'https://astra-store.elmeri-liikonen-noobthepro.workers.dev/api/cosmetics/owned?' + query.toString(),
     'https://elkku01.github.io/astra-website/api/cosmetics/owned?' + query.toString(),
     'https://elkku01.github.io/astra-website/cosmetics-owned.json',
   ]
@@ -301,7 +302,7 @@ async function claimPurchase(
     username: user?.username || '',
     uuid: user?.uuid || '',
   })
-  const urls = [storeApiUrl('/api/cosmetics/claim')]
+  const urls = [storeApiUrl('/api/cosmetics/claim'), 'https://astra-store.elmeri-liikonen-noobthepro.workers.dev/api/cosmetics/claim']
   for (const url of urls) {
     let response: Response
     try {
@@ -355,8 +356,10 @@ export async function loginWithUsername(username: string): Promise<StoreUser> {
     username: profile.username,
     uuid: profile.uuid,
     skinUrl: profile.skinUrl || same?.skinUrl,
-    ownedCapeIds: remote ? remote.ownedCapeIds : same?.ownedCapeIds || [],
-    collection: remote ? remote.collection : Boolean(same?.collection),
+    ownedCapeIds: [
+      ...new Set([...(same?.ownedCapeIds || []), ...(remote?.ownedCapeIds || [])]),
+    ],
+    collection: Boolean(remote?.collection || same?.collection),
   })
   writeSession(user)
   return user
@@ -409,8 +412,8 @@ export async function applyRemoteOwned(username?: string): Promise<StoreUser | n
   if (!remote) return session
   const next = withCollection({
     ...session,
-    ownedCapeIds: remote.ownedCapeIds,
-    collection: remote.collection,
+    ownedCapeIds: [...new Set([...(session.ownedCapeIds || []), ...remote.ownedCapeIds])],
+    collection: remote.collection || Boolean(session.collection),
   })
   writeSession(next)
   return next

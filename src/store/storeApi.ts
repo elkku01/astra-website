@@ -1,4 +1,5 @@
-const API = String(import.meta.env.VITE_STORE_API || '').replace(/\/$/, '')
+const DEFAULT_PROD_API = 'https://astra-store.elmeri-liikonen-noobthepro.workers.dev/api'
+const API = String(import.meta.env.VITE_STORE_API || (import.meta.env.DEV ? '' : DEFAULT_PROD_API)).replace(/\/$/, '')
 const TOKEN_KEY = 'astra-admin-token'
 
 export function storeApiUrl(path: string) {
