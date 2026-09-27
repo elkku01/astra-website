@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { COLLECTION_LIMIT } from './capes'
+import { storeApiUrl } from './storeApi'
 
 export type CollectionStock = {
   limit: number
@@ -15,7 +16,7 @@ export function formatCollectionStock(stock: CollectionStock): string {
 
 export async function fetchCollectionStock(): Promise<CollectionStock> {
   try {
-    const response = await fetch('/api/collection-stock', {
+    const response = await fetch(storeApiUrl('/api/collection-stock'), {
       headers: { Accept: 'application/json' },
     })
     if (!response.ok) throw new Error('stock-unavailable')
@@ -30,7 +31,7 @@ export async function fetchCollectionStock(): Promise<CollectionStock> {
 
 export async function recordCollectionSale(ident: string): Promise<void> {
   try {
-    await fetch('/api/collection-sale', {
+    await fetch(storeApiUrl('/api/collection-sale'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ ident }),

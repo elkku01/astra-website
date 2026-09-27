@@ -1,0 +1,13 @@
+name = "astra-store"
+main = "server/worker.ts"
+compatibility_date = "2025-09-27"
+account_id = "9b522ee211d2d81291ed46b7c44f6025"
+workers_dev = true
+
+[vars]
+COLLECTION_SLUG = "collection"
+COLLECTION_LIMIT = "100"
+
+[[kv_namespaces]]
+binding = "STORE"
+id = "c21b3b2f5a8249cca6d67d9f381cef8c"

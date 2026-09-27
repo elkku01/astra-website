@@ -9,6 +9,7 @@ import {
   isFullCollection,
   knownCapeIds,
 } from '../src/store/fulfillment.ts'
+import { freeCapeIds } from '../src/store/capes.ts'
 
 type OwnedRecord = {
   uuid: string
@@ -81,6 +82,13 @@ function writeStore(store: StoreFile) {
     fs.mkdirSync(path.dirname(shared), { recursive: true })
     fs.writeFileSync(shared, json, 'utf8')
   }
+  try {
+    const published = path.resolve('public/cosmetics-owned.json')
+    fs.mkdirSync(path.dirname(published), { recursive: true })
+    fs.writeFileSync(published, json, 'utf8')
+  } catch {
+    // Optional copy for GitHub Pages / Vite public serving.
+  }
 }
 
 function recordsFor(store: StoreFile, uuid: string, username: string): OwnedRecord[] {
@@ -102,7 +110,7 @@ function lookup(store: StoreFile, uuid: string, username: string): OwnedRecord {
   return {
     uuid: matches.find((record) => uuidKey(record.uuid))?.uuid || uuid,
     username: matches.find((record) => nameKey(record.username))?.username || username,
-    ownedCapeIds: [...new Set(matches.flatMap((record) => record.ownedCapeIds || []))],
+    ownedCapeIds: [...new Set([...matches.flatMap((record) => record.ownedCapeIds || []), ...freeCapeIds()])],
     collection: matches.some((record) => record.collection),
   }
 }
@@ -460,7 +468,7 @@ async function handle(
     }
     const token = randomBytes(32).toString('hex')
     sessions.set(token, Date.now() + SESSION_MS)
-    send(res, 200, { ok: true }, adminCookie(token))
+    send(res, 200, { ok: true, token }, adminCookie(token))
     return true
   }
 

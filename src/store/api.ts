@@ -2,9 +2,9 @@ import { CAPES, COLLECTION_LAUNCH_PRICE, freeCapeIds, paidCapes } from './capes'
 import { capeIdsFromBasket, clearPendingBasket, getTebexBasket, takePendingBasket } from './tebex'
 import { recordCollectionSale } from './collectionStock'
 import { isFullCollection } from './fulfillment'
+import { storeApiUrl } from './storeApi'
 
 const SESSION_KEY = 'astra-capes-session'
-const API = String(import.meta.env.VITE_STORE_API || '').replace(/\/$/, '')
 
 export type StoreUser = {
   username: string
@@ -202,6 +202,59 @@ async function lookupMinecraft(username: string): Promise<Profile> {
   )
 }
 
+function ownedFromBody(
+  body: {
+    ownedCapeIds?: unknown
+    owned?: unknown
+    capeIds?: unknown
+    collection?: unknown
+    byUuid?: unknown
+    byName?: unknown
+  },
+  uuid: string,
+  username: string,
+): { ownedCapeIds: string[]; collection: boolean } | null {
+  const record = storeRecord(body, uuid, username)
+  const source = record || body
+  const raw = source.ownedCapeIds ?? source.owned ?? source.capeIds
+  const ownedCapeIds = Array.isArray(raw)
+    ? raw.filter((id): id is string => typeof id === 'string')
+    : []
+  const collection = Boolean(source.collection || body.collection)
+  if (!record && ownedCapeIds.length === 0 && !collection && (body.byUuid || body.byName)) {
+    return null
+  }
+  return { ownedCapeIds, collection }
+}
+
+function storeRecord(
+  body: { byUuid?: unknown; byName?: unknown },
+  uuid: string,
+  username: string,
+): { ownedCapeIds?: unknown; owned?: unknown; capeIds?: unknown; collection?: unknown; username?: unknown } | null {
+  const hex = uuid.replace(/-/g, '').toLowerCase()
+  const dashed = formatUuid(uuid).toLowerCase()
+  if (body.byUuid && typeof body.byUuid === 'object') {
+    const byUuid = body.byUuid as Record<
+      string,
+      { ownedCapeIds?: unknown; collection?: unknown; username?: unknown }
+    >
+    const match = byUuid[hex] || byUuid[dashed]
+    if (match) return match
+    const wanted = username.trim().toLowerCase()
+    if (wanted) {
+      for (const record of Object.values(byUuid)) {
+        if (String(record?.username || '').trim().toLowerCase() === wanted) return record
+      }
+    }
+  }
+  if (username && body.byName && typeof body.byName === 'object') {
+    const byName = body.byName as Record<string, { ownedCapeIds?: unknown; collection?: unknown }>
+    return byName[username.trim().toLowerCase()] || null
+  }
+  return null
+}
+
 async function fetchOwnedFromStore(uuid: string, username: string): Promise<{
   ownedCapeIds: string[]
   collection: boolean
@@ -210,19 +263,22 @@ async function fetchOwnedFromStore(uuid: string, username: string): Promise<{
   if (uuid) query.set('uuid', uuid)
   if (username) query.set('username', username)
   const urls = [
-    API ? `${API}/cosmetics/owned?${query}` : '',
-    `/api/cosmetics/owned?${query}`,
-  ].filter(Boolean)
+    storeApiUrl(`/api/cosmetics/owned?${query}`),
+    'https://elkku01.github.io/astra-website/api/cosmetics/owned?' + query.toString(),
+    'https://elkku01.github.io/astra-website/cosmetics-owned.json',
+  ]
   for (const url of urls) {
     try {
       const body = (await fetchJson(url, 4000)) as {
         ownedCapeIds?: unknown
+        owned?: unknown
+        capeIds?: unknown
         collection?: unknown
+        byUuid?: unknown
+        byName?: unknown
       }
-      const ownedCapeIds = Array.isArray(body.ownedCapeIds)
-        ? body.ownedCapeIds.filter((id): id is string => typeof id === 'string')
-        : []
-      return { ownedCapeIds, collection: Boolean(body.collection) }
+      const parsed = ownedFromBody(body, uuid, username)
+      if (parsed) return parsed
     } catch {
       // Local store API is optional until the production backend is live.
     }
@@ -245,7 +301,7 @@ async function claimPurchase(
     username: user?.username || '',
     uuid: user?.uuid || '',
   })
-  const urls = [API ? `${API}/cosmetics/claim` : '', '/api/cosmetics/claim'].filter(Boolean)
+  const urls = [storeApiUrl('/api/cosmetics/claim')]
   for (const url of urls) {
     let response: Response
     try {
@@ -310,8 +366,8 @@ export async function validateStoreToken(token: string): Promise<StoreUser> {
   const value = token.trim()
   if (!value) throw new Error('Missing token')
 
-  if (API) {
-    const response = await fetch(`${API}/auth`, {
+  if (import.meta.env.VITE_STORE_API) {
+    const response = await fetch(storeApiUrl('/api/auth'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ token: value }),

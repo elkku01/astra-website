@@ -1,3 +1,5 @@
+import { readAdminToken, storeApiUrl, writeAdminToken } from './storeApi'
+
 const FLAG_KEY = 'astra-admin-ok'
 
 export type AdminPlayer = {
@@ -14,36 +16,39 @@ function setAuthedFlag(value: boolean) {
   } catch {
     // Private mode can block sessionStorage.
   }
+  if (!value) writeAdminToken(null)
 }
 
 export function isAdminAuthed(): boolean {
   try {
-    return sessionStorage.getItem(FLAG_KEY) === '1'
+    return sessionStorage.getItem(FLAG_KEY) === '1' && Boolean(readAdminToken())
   } catch {
     return false
   }
 }
 
 async function adminJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
+  const token = readAdminToken()
+  const response = await fetch(storeApiUrl(path), {
     ...init,
     credentials: 'include',
     headers: {
       Accept: 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
       ...init?.headers,
     },
   })
   const body = (await response.json().catch(() => null)) as
-    | (T & { error?: string })
-    | { error?: string }
+    | (T & { error?: string; token?: string })
+    | { error?: string; token?: string }
     | null
   if (!response.ok) {
     if (response.status === 401) setAuthedFlag(false)
     throw new Error(
       (body && typeof body === 'object' && body.error) ||
-        (response.status === 404
-          ? 'Admin is only available on the local store server.'
+        (response.status === 404 || response.status === 405
+          ? 'Admin needs the live store API. Refresh after the latest deploy.'
           : `Admin request failed (${response.status})`),
     )
   }
@@ -51,10 +56,12 @@ async function adminJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function adminLogin(password: string): Promise<void> {
-  await adminJson<{ ok?: boolean }>('/api/admin/login', {
+  const body = await adminJson<{ ok?: boolean; token?: string }>('/api/admin/login', {
     method: 'POST',
     body: JSON.stringify({ password }),
   })
+  if (!body.token) throw new Error('Admin login did not return a session.')
+  writeAdminToken(body.token)
   setAuthedFlag(true)
 }
 

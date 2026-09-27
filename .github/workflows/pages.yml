@@ -31,6 +31,7 @@ jobs:
           VITE_TEBEX_PUBLIC_TOKEN: ${{ secrets.TEBEX_PUBLIC_TOKEN }}
           VITE_TEBEX_STORE_URL: ${{ secrets.TEBEX_STORE_URL }}
           VITE_TEBEX_COLLECTION_SLUG: collection
+          VITE_STORE_API: https://astra-store.elmeri-liikonen-noobthepro.workers.dev/api
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

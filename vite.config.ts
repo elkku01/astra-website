@@ -11,7 +11,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob: https://minotar.net https://crafatar.com https://textures.minecraft.net https://cdn.tebex.io https://mc-heads.net https://crafthead.net",
-  "connect-src 'self' https://headless.tebex.io https://checkout.tebex.io https://api.github.com https://api.modrinth.com https://piston-meta.mojang.com https://login.microsoftonline.com https://discordstatus.com https://playerdb.co https://minotar.net https://crafatar.com https://api.ashcon.app https://api.minetools.eu https://mc-heads.net https://textures.minecraft.net https://crafthead.net",
+  "connect-src 'self' https://headless.tebex.io https://checkout.tebex.io https://api.github.com https://api.modrinth.com https://piston-meta.mojang.com https://login.microsoftonline.com https://discordstatus.com https://playerdb.co https://minotar.net https://crafatar.com https://api.ashcon.app https://api.minetools.eu https://mc-heads.net https://textures.minecraft.net https://crafthead.net https://*.workers.dev https://*.deno.dev",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self' https://checkout.tebex.io https://pay.tebex.io https://*.tebex.io",
