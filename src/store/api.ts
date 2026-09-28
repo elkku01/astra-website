@@ -142,57 +142,14 @@ async function lookupMinecraft(username: string): Promise<Profile> {
   }
 }
 
-function ownedFromBody(
-  body: {
-    ownedCapeIds?: unknown
-    owned?: unknown
-    capeIds?: unknown
-    collection?: unknown
-    byUuid?: unknown
-    byName?: unknown
-  },
-  uuid: string,
-  username: string,
-): { ownedCapeIds: string[]; collection: boolean } | null {
-  const record = storeRecord(body, uuid, username)
-  const source = record || body
-  const raw = source.ownedCapeIds ?? source.owned ?? source.capeIds
-  const ownedCapeIds = Array.isArray(raw)
-    ? raw.filter((id): id is string => typeof id === 'string')
+function ownedFromBody(body: { ownedCapeIds?: unknown; collection?: unknown }): {
+  ownedCapeIds: string[]
+  collection: boolean
+} {
+  const ownedCapeIds = Array.isArray(body.ownedCapeIds)
+    ? body.ownedCapeIds.filter((id): id is string => typeof id === 'string')
     : []
-  const collection = Boolean(source.collection || body.collection)
-  if (!record && ownedCapeIds.length === 0 && !collection && (body.byUuid || body.byName)) {
-    return null
-  }
-  return { ownedCapeIds, collection }
-}
-
-function storeRecord(
-  body: { byUuid?: unknown; byName?: unknown },
-  uuid: string,
-  username: string,
-): { ownedCapeIds?: unknown; owned?: unknown; capeIds?: unknown; collection?: unknown; username?: unknown } | null {
-  const hex = uuid.replace(/-/g, '').toLowerCase()
-  const dashed = formatUuid(uuid).toLowerCase()
-  if (body.byUuid && typeof body.byUuid === 'object') {
-    const byUuid = body.byUuid as Record<
-      string,
-      { ownedCapeIds?: unknown; collection?: unknown; username?: unknown }
-    >
-    const match = byUuid[hex] || byUuid[dashed]
-    if (match) return match
-    const wanted = username.trim().toLowerCase()
-    if (wanted) {
-      for (const record of Object.values(byUuid)) {
-        if (String(record?.username || '').trim().toLowerCase() === wanted) return record
-      }
-    }
-  }
-  if (username && body.byName && typeof body.byName === 'object') {
-    const byName = body.byName as Record<string, { ownedCapeIds?: unknown; collection?: unknown }>
-    return byName[username.trim().toLowerCase()] || null
-  }
-  return null
+  return { ownedCapeIds, collection: body.collection === true }
 }
 
 async function fetchOwnedFromStore(uuid: string, username: string): Promise<{
@@ -202,29 +159,17 @@ async function fetchOwnedFromStore(uuid: string, username: string): Promise<{
   const query = new URLSearchParams()
   if (uuid) query.set('uuid', uuid)
   if (username) query.set('username', username)
-  const urls = [
-    storeApiUrl(`/api/cosmetics/owned?${query}`),
-    'https://astra-store.elmeri-liikonen-noobthepro.workers.dev/api/cosmetics/owned?' + query.toString(),
-    'https://elkku01.github.io/astra-website/api/cosmetics/owned?' + query.toString(),
-    'https://elkku01.github.io/astra-website/cosmetics-owned.json',
-  ]
-  for (const url of urls) {
-    try {
-      const body = (await fetchJson(url, 4000)) as {
-        ownedCapeIds?: unknown
-        owned?: unknown
-        capeIds?: unknown
-        collection?: unknown
-        byUuid?: unknown
-        byName?: unknown
-      }
-      const parsed = ownedFromBody(body, uuid, username)
-      if (parsed) return parsed
-    } catch {
-      // Local store API is optional until the production backend is live.
+  // The store API is the only source of truth for ownership.
+  try {
+    const body = (await fetchJson(storeApiUrl(`/api/cosmetics/owned?${query}`), 6000)) as {
+      ownedCapeIds?: unknown
+      collection?: unknown
     }
+    return ownedFromBody(body)
+  } catch (error) {
+    console.warn('Could not load owned cloaks from the store API.', error)
+    return null
   }
-  return null
 }
 
 async function claimPurchase(
@@ -242,7 +187,7 @@ async function claimPurchase(
     username: user?.username || '',
     uuid: user?.uuid || '',
   })
-  const urls = [storeApiUrl('/api/cosmetics/claim'), 'https://astra-store.elmeri-liikonen-noobthepro.workers.dev/api/cosmetics/claim']
+  const urls = [storeApiUrl('/api/cosmetics/claim')]
   for (const url of urls) {
     let response: Response
     try {
@@ -296,10 +241,9 @@ export async function loginWithUsername(username: string): Promise<StoreUser> {
     username: profile.username,
     uuid: profile.uuid,
     skinUrl: profile.skinUrl || same?.skinUrl,
-    ownedCapeIds: [
-      ...new Set([...(same?.ownedCapeIds || []), ...(remote?.ownedCapeIds || [])]),
-    ],
-    collection: Boolean(remote?.collection || same?.collection),
+    // The server answer replaces the cached list, so revoked cloaks disappear.
+    ownedCapeIds: remote ? remote.ownedCapeIds : same?.ownedCapeIds || [],
+    collection: remote ? remote.collection : Boolean(same?.collection),
   })
   writeSession(user)
   return user
@@ -352,8 +296,8 @@ export async function applyRemoteOwned(username?: string): Promise<StoreUser | n
   if (!remote) return session
   const next = withCollection({
     ...session,
-    ownedCapeIds: [...new Set([...(session.ownedCapeIds || []), ...remote.ownedCapeIds])],
-    collection: remote.collection || Boolean(session.collection),
+    ownedCapeIds: remote.ownedCapeIds,
+    collection: remote.collection,
   })
   writeSession(next)
   return next
