@@ -141,7 +141,7 @@ function App() {
             </a>
           ))}
           <Link to="/store" viewTransition>
-            Cloaks
+            Store
           </Link>
           <Link to="/status" viewTransition>
             Status
@@ -312,7 +312,7 @@ function App() {
         </a>
         <p>
           <Link to="/store" viewTransition>
-            Cloaks
+            Store
           </Link>
           <span aria-hidden="true"> · </span>
           <Link to="/status" viewTransition>

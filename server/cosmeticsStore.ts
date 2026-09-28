@@ -10,6 +10,8 @@ import {
   knownCapeIds,
 } from '../src/store/fulfillment.ts'
 import { freeCapeIds } from '../src/store/capes.ts'
+import { INVALID_MINECRAFT_ACCOUNT, resolveMinecraftAccount } from '../src/store/minecraftAccount.ts'
+import { inspectTebexWebhook } from './tebexWebhook.ts'
 
 type OwnedRecord = {
   uuid: string
@@ -333,7 +335,8 @@ function isStorePath(url: string): boolean {
     pathname === '/api/admin/grant' ||
     pathname === '/api/admin/revoke' ||
     pathname === '/api/collection-stock' ||
-    pathname === '/api/collection-sale'
+    pathname === '/api/collection-sale' ||
+    pathname === '/api/webhooks/tebex'
   )
 }
 
@@ -341,12 +344,14 @@ export function cosmeticsStoreApi(
   options: {
     adminPassword?: string
     tebexPublicToken?: string
+    tebexWebhookSecret?: string
     collectionSlug?: string
     collectionLimit?: number
   } = {},
 ): Plugin {
   const adminPassword = options.adminPassword || ''
   const tebexPublicToken = options.tebexPublicToken || ''
+  const tebexWebhookSecret = options.tebexWebhookSecret || ''
   const collectionSlug = options.collectionSlug || 'collection'
   const collectionLimit =
     options.collectionLimit && options.collectionLimit > 0 ? options.collectionLimit : 100
@@ -359,6 +364,7 @@ export function cosmeticsStoreApi(
             await handle(req, res, {
               adminPassword,
               tebexPublicToken,
+              tebexWebhookSecret,
               collectionSlug,
               collectionLimit,
             })
@@ -382,6 +388,7 @@ export function cosmeticsStoreApi(
             await handle(req, res, {
               adminPassword,
               tebexPublicToken,
+              tebexWebhookSecret,
               collectionSlug,
               collectionLimit,
             })
@@ -407,11 +414,13 @@ async function handle(
   options: {
     adminPassword: string
     tebexPublicToken: string
+    tebexWebhookSecret: string
     collectionSlug: string
     collectionLimit: number
   },
 ): Promise<boolean> {
-  const { adminPassword, tebexPublicToken, collectionSlug, collectionLimit } = options
+  const { adminPassword, tebexPublicToken, tebexWebhookSecret, collectionSlug, collectionLimit } =
+    options
   const url = req.url || '/'
   if (!isStorePath(url)) return false
   if (req.method === 'OPTIONS') {
@@ -420,6 +429,65 @@ async function handle(
   }
   const pathname = url.split('?')[0]
   const ip = clientIp(req)
+
+  if (pathname === '/api/webhooks/tebex' && req.method === 'GET') {
+    send(res, 200, { ok: true, endpoint: 'webhooks' })
+    return true
+  }
+
+  if (pathname === '/api/webhooks/tebex' && req.method === 'POST') {
+    const rawBody = await readBody(req)
+    const inspected = await inspectTebexWebhook({
+      rawBody,
+      signature: String(req.headers['x-signature'] || ''),
+      ip,
+      secret: tebexWebhookSecret,
+    })
+    if (inspected.kind === 'unauthorized') {
+      send(res, 401, { error: 'Invalid webhook signature.' })
+      return true
+    }
+    if (inspected.kind === 'invalid') {
+      send(res, 400, { error: 'Invalid webhook.' })
+      return true
+    }
+    if (inspected.kind === 'validation') {
+      send(res, 200, { id: inspected.id })
+      return true
+    }
+    if (inspected.kind === 'ignored') {
+      send(res, 200, { received: true, type: inspected.type })
+      return true
+    }
+    const packages = inspected.packages
+    const granted = capeIdsFromPackages(packages, collectionSlug)
+    let username = inspected.username
+    let uuid = inspected.uuid
+    if (USERNAME_RE.test(username)) {
+      try {
+        const account = await resolveMinecraftAccount(username)
+        username = account.username
+        uuid = account.uuid || uuid
+      } catch {
+        // Keep the checkout username if Mojang lookup is down.
+      }
+    }
+    if (!USERNAME_RE.test(username) || granted.length === 0) {
+      send(res, 200, { received: true, granted: [], complete: true })
+      return true
+    }
+    const collection = isCollectionPackage(packages, collectionSlug) || isFullCollection(granted)
+    const existing = lookup(readStore(), uuid, username)
+    const record = grant({
+      username,
+      uuid: existing.uuid || uuid,
+      ownedCapeIds: granted,
+      collection,
+    })
+    if (collection) recordVerifiedCollectionSale(inspected.transactionId, collectionLimit)
+    send(res, 200, { ...record, complete: true, granted })
+    return true
+  }
 
   if (pathname === '/api/collection-stock' && req.method === 'GET') {
     send(res, 200, collectionStock(collectionLimit))
@@ -502,15 +570,20 @@ async function handle(
       return true
     }
     const username = String(body.username || '').trim()
-    if (!USERNAME_RE.test(username)) {
-      send(res, 400, { error: 'Enter a valid Java Edition username.' })
+    let account
+    try {
+      account = await resolveMinecraftAccount(username)
+    } catch (error) {
+      send(res, 400, {
+        error: error instanceof Error ? error.message : INVALID_MINECRAFT_ACCOUNT,
+      })
       return true
     }
     const capeIds = knownCapeIds(Array.isArray(body.capeIds) ? body.capeIds.map(String) : [])
-    const existing = lookup(readStore(), '', username)
+    const existing = lookup(readStore(), account.uuid, account.username)
     const record = grant({
-      username,
-      uuid: existing.uuid,
+      username: account.username,
+      uuid: existing.uuid || account.uuid,
       ownedCapeIds: capeIds,
       collection: Boolean(body.collection) || isFullCollection(capeIds),
     })

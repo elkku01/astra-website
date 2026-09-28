@@ -5,6 +5,8 @@ import {
   knownCapeIds,
 } from '../src/store/fulfillment.ts'
 import { freeCapeIds } from '../src/store/capes.ts'
+import { INVALID_MINECRAFT_ACCOUNT, resolveMinecraftAccount } from '../src/store/minecraftAccount.ts'
+import { inspectTebexWebhook } from './tebexWebhook.ts'
 
 type OwnedRecord = {
   uuid: string
@@ -30,6 +32,7 @@ export interface Env {
   STORE: KVNamespace
   ADMIN_PASSWORD: string
   TEBEX_PUBLIC_TOKEN?: string
+  TEBEX_WEBHOOK_SECRET?: string
   COLLECTION_SLUG?: string
   COLLECTION_LIMIT?: string
 }
@@ -304,6 +307,7 @@ export default {
 
     const adminPassword = env.ADMIN_PASSWORD || ''
     const tebexPublicToken = env.TEBEX_PUBLIC_TOKEN || ''
+    const tebexWebhookSecret = env.TEBEX_WEBHOOK_SECRET || ''
     const collectionSlug = env.COLLECTION_SLUG || 'collection'
     const collectionLimit = Math.max(1, Number(env.COLLECTION_LIMIT || 100) || 100)
     const ip = clientIp(request)
@@ -319,6 +323,52 @@ export default {
       } catch {
         return null
       }
+    }
+
+    if (pathname === '/api/webhooks/tebex' && request.method === 'GET') {
+      return json(200, { ok: true, endpoint: 'webhooks' }, origin)
+    }
+
+    if (pathname === '/api/webhooks/tebex' && request.method === 'POST') {
+      const rawBody = await request.text()
+      const inspected = await inspectTebexWebhook({
+        rawBody,
+        signature: request.headers.get('X-Signature') || '',
+        ip,
+        secret: tebexWebhookSecret,
+      })
+      if (inspected.kind === 'unauthorized') return json(401, { error: 'Invalid webhook signature.' }, origin)
+      if (inspected.kind === 'invalid') return json(400, { error: 'Invalid webhook.' }, origin)
+      if (inspected.kind === 'validation') return json(200, { id: inspected.id }, origin)
+      if (inspected.kind === 'ignored') return json(200, { received: true, type: inspected.type }, origin)
+
+      const packages = inspected.packages
+      const granted = capeIdsFromPackages(packages, collectionSlug)
+      let username = inspected.username
+      let uuid = inspected.uuid
+      if (USERNAME_RE.test(username)) {
+        try {
+          const account = await resolveMinecraftAccount(username)
+          username = account.username
+          uuid = account.uuid || uuid
+        } catch {
+          // Keep the checkout username if Mojang lookup is down.
+        }
+      }
+      if (!USERNAME_RE.test(username) || granted.length === 0) {
+        return json(200, { received: true, granted: [], complete: true }, origin)
+      }
+      const collection = isCollectionPackage(packages, collectionSlug) || isFullCollection(granted)
+      const store = await readStore(env)
+      const existing = lookup(store, uuid, username)
+      const record = await grant(env, {
+        username,
+        uuid: existing.uuid || uuid,
+        ownedCapeIds: granted,
+        collection,
+      })
+      if (collection) await recordVerifiedCollectionSale(env, inspected.transactionId, collectionLimit)
+      return json(200, { ...record, complete: true, granted }, origin)
     }
 
     if (pathname === '/api/collection-stock' && request.method === 'GET') {
@@ -383,15 +433,22 @@ export default {
       const body = await parseBody()
       if (!body) return json(400, { error: 'Invalid JSON.' }, origin)
       const username = String(body.username || '').trim()
-      if (!USERNAME_RE.test(username)) {
-        return json(400, { error: 'Enter a valid Java Edition username.' }, origin)
+      let account
+      try {
+        account = await resolveMinecraftAccount(username)
+      } catch (error) {
+        return json(
+          400,
+          { error: error instanceof Error ? error.message : INVALID_MINECRAFT_ACCOUNT },
+          origin,
+        )
       }
       const capeIds = knownCapeIds(Array.isArray(body.capeIds) ? body.capeIds.map(String) : [])
       const store = await readStore(env)
-      const existing = lookup(store, '', username)
+      const existing = lookup(store, account.uuid, account.username)
       const record = await grant(env, {
-        username,
-        uuid: existing.uuid,
+        username: account.username,
+        uuid: existing.uuid || account.uuid,
         ownedCapeIds: capeIds,
         collection: Boolean(body.collection) || isFullCollection(capeIds),
       })

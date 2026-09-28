@@ -98,7 +98,7 @@ export default function StoreLayout() {
         </Link>
         <nav className="store-links" aria-label="Store">
           <NavLink to="/store" end viewTransition>
-            Cloaks
+            Store
           </NavLink>
           <NavLink to="/store/my-capes" viewTransition>
             My Cloaks

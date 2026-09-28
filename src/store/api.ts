@@ -3,6 +3,7 @@ import { capeIdsFromBasket, clearPendingBasket, getTebexBasket, takePendingBaske
 import { recordCollectionSale } from './collectionStock'
 import { isFullCollection } from './fulfillment'
 import { storeApiUrl } from './storeApi'
+import { resolveMinecraftAccount, USERNAME_RE } from './minecraftAccount'
 
 const SESSION_KEY = 'astra-capes-session'
 
@@ -15,8 +16,6 @@ export type StoreUser = {
 }
 
 type Session = StoreUser & { token?: string }
-
-const USERNAME_RE = /^[A-Za-z0-9_]{3,16}$/
 
 function readSession(): Session | null {
   try {
@@ -115,17 +114,6 @@ export function skinSources(username: string, uuid = '', textureUrl = ''): strin
 
 type Profile = { username: string; uuid: string; skinUrl?: string }
 
-function asProfile(
-  username?: string | null,
-  uuid?: string | null,
-  skinUrl?: string | null,
-): Profile | null {
-  if (!username || !USERNAME_RE.test(username) || !uuid) return null
-  const formatted = formatUuid(uuid)
-  if (formatted.replace(/-/g, '').length !== 32) return null
-  return { username, uuid: formatted, skinUrl: httpsTextureUrl(skinUrl) }
-}
-
 async function fetchJson(url: string, timeoutMs = 7000): Promise<unknown> {
   const controller = new AbortController()
   const timer = window.setTimeout(() => controller.abort(), timeoutMs)
@@ -143,63 +131,15 @@ async function fetchJson(url: string, timeoutMs = 7000): Promise<unknown> {
 }
 
 async function lookupMinecraft(username: string): Promise<Profile> {
-  const name = username.trim()
-  if (!USERNAME_RE.test(name)) throw new Error('Enter a valid Java Edition username (3–16 letters, numbers, or _).')
-
-  const sources: Array<() => Promise<Profile | null>> = [
-    async () => {
-      const body = (await fetchJson(
-        `https://playerdb.co/api/player/minecraft/${encodeURIComponent(name)}`,
-      )) as {
-        data?: {
-          player?: { username?: string; id?: string; raw_id?: string; skin_texture?: string }
-        }
-      }
-      const player = body.data?.player
-      return asProfile(player?.username, player?.id || player?.raw_id, player?.skin_texture)
-    },
-    async () => {
-      const body = (await fetchJson(
-        `https://api.ashcon.app/mojang/v2/user/${encodeURIComponent(name)}`,
-      )) as { username?: string; uuid?: string; textures?: { skin?: { url?: string } } }
-      return asProfile(body.username, body.uuid, body.textures?.skin?.url)
-    },
-    async () => {
-      const body = (await fetchJson(
-        `https://api.minetools.eu/uuid/${encodeURIComponent(name)}`,
-      )) as { id?: string | null; name?: string; status?: string }
-      if (body.status === 'ERR' || !body.id) throw new Error('not-found')
-      const profile = asProfile(body.name, body.id)
-      if (!profile) return null
-      try {
-        const extra = (await fetchJson(
-          `https://api.minetools.eu/profile/${profile.uuid.replace(/-/g, '')}`,
-        )) as { decoded?: { textures?: { SKIN?: { url?: string } } } }
-        return {
-          ...profile,
-          skinUrl: httpsTextureUrl(extra.decoded?.textures?.SKIN?.url) || profile.skinUrl,
-        }
-      } catch {
-        return profile
-      }
-    },
-  ]
-
-  let missing = false
-  for (const source of sources) {
-    try {
-      const profile = await source()
-      if (profile) return profile
-    } catch (error) {
-      if (error instanceof Error && error.message === 'not-found') missing = true
-    }
+  const account = await resolveMinecraftAccount(username)
+  try {
+    const body = (await fetchJson(
+      `https://api.ashcon.app/mojang/v2/user/${encodeURIComponent(account.username)}`,
+    )) as { textures?: { skin?: { url?: string } } }
+    return { ...account, skinUrl: httpsTextureUrl(body.textures?.skin?.url) }
+  } catch {
+    return account
   }
-
-  throw new Error(
-    missing
-      ? 'Could not find that Java Edition account. Check the spelling.'
-      : 'Minecraft profile lookup is unavailable right now. Try again in a moment.',
-  )
 }
 
 function ownedFromBody(

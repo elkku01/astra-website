@@ -28,3 +28,6 @@ public/*.exe
 .env
 .env.*
 !.env.example
+
+# Ownership data must never be published with the static site
+public/cosmetics-owned.json

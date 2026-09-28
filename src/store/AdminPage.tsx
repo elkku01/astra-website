@@ -9,6 +9,7 @@ import {
   type AdminPlayer,
 } from './admin'
 import { avatarUrl } from './api'
+import { INVALID_MINECRAFT_ACCOUNT, resolveMinecraftAccount } from './minecraftAccount'
 import { capeThumbUrl } from './capeArt'
 import { CAPES, getCape, paidCapes } from './capes'
 import { useSession } from './session'
@@ -75,10 +76,29 @@ export default function AdminPage() {
   if (!authed) return <Navigate to="/store" replace />
 
   function selectPlayer(name: string) {
-    setActiveName(name)
+    void activatePlayer(name)
+  }
+
+  async function activatePlayer(name: string) {
     setGiveId('')
-    setError('')
     setNotice('')
+    const known = players.some((player) => player.username.toLowerCase() === name.toLowerCase())
+    if (known) {
+      setError('')
+      setActiveName(name)
+      return
+    }
+    setBusy('lookup')
+    setError('')
+    try {
+      const account = await resolveMinecraftAccount(name)
+      setActiveName(account.username)
+    } catch (err) {
+      setActiveName('')
+      setError(err instanceof Error ? err.message : INVALID_MINECRAFT_ACCOUNT)
+    } finally {
+      setBusy(null)
+    }
   }
 
   async function give(ids: string[]) {
@@ -87,8 +107,9 @@ export default function AdminPage() {
     setError('')
     setNotice('')
     try {
+      const account = await resolveMinecraftAccount(active.username)
       const collection = paidIds.every((id) => [...owned, ...ids].includes(id))
-      const record = await adminGrant(active.username, ids, collection)
+      const record = await adminGrant(account.username, ids, collection)
       setNotice(`Gave ${ids.length === 1 ? getCape(ids[0])?.name || ids[0] : `${ids.length} cloaks`} to ${record.username}.`)
       setGiveId('')
       await loadPlayers()
