@@ -7,9 +7,9 @@ import './LegalPage.css'
  * legally responsible for Astra (the "controller" under GDPR). Get the final
  * text reviewed by a lawyer if you can; this is a solid template, not legal advice.
  */
-const OPERATOR = '[Your full legal name or company name]'
-const OPERATOR_ADDRESS = '[Street address, postal code, city], Finland'
-const CONTACT_EMAIL = '[support@your-domain]'
+const OPERATOR = 'Elmeri Liikonen'
+const OPERATOR_ADDRESS = 'Heinolan Vanhatie 28B, Finland'
+const CONTACT_EMAIL = 'support.astraclient@gmail.com'
 const LAST_UPDATED = '29 September 2026'
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {

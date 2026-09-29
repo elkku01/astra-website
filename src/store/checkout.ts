@@ -12,6 +12,10 @@ export async function startCheckout(opts: { username: string; capeIds: string[];
     body: JSON.stringify(opts),
   })
   const body = (await response.json().catch(() => ({}))) as { url?: string; error?: string }
+  if (response.status === 404 || response.status === 405) {
+    // The store server has not been switched to the new checkout yet.
+    throw new Error('Purchases are paused for a moment while we move to a new payment provider. Please try again soon.')
+  }
   if (!response.ok || !body.url) {
     throw new Error(body.error || 'Could not open checkout. Try again in a moment.')
   }
