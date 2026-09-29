@@ -8,7 +8,6 @@ import './LegalPage.css'
  * text reviewed by a lawyer if you can; this is a solid template, not legal advice.
  */
 const OPERATOR = 'Elmeri Liikonen'
-const OPERATOR_ADDRESS = 'Heinolan Vanhatie 28B, 15170 Lahti, Finland'
 const CONTACT_EMAIL = 'support.astraclient@gmail.com'
 const LAST_UPDATED = '29 September 2026'
 
@@ -68,7 +67,7 @@ export default function LegalPage() {
           <p>
             This policy explains what Astra (the Astra Client launcher, the Astra Client mod, this
             website and the Astra store) collects, why, and what you can do about it. The controller
-            is {OPERATOR}, {OPERATOR_ADDRESS}. Contact: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+            is {OPERATOR}, Finland. Contact: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
           </p>
 
           <h3>What we collect and why</h3>
