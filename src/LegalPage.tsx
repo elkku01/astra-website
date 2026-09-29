@@ -8,7 +8,7 @@ import './LegalPage.css'
  * text reviewed by a lawyer if you can; this is a solid template, not legal advice.
  */
 const OPERATOR = 'Elmeri Liikonen'
-const OPERATOR_ADDRESS = 'Heinolan Vanhatie 28B, Finland'
+const OPERATOR_ADDRESS = 'Heinolan Vanhatie 28B, 15170 Lahti, Finland'
 const CONTACT_EMAIL = 'support.astraclient@gmail.com'
 const LAST_UPDATED = '29 September 2026'
 
