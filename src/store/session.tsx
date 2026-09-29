@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import {
-  applyVerifiedBasket,
+  applyCheckoutSession,
   applyRemoteOwned,
   getSession,
   loginWithToken,
@@ -99,7 +99,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const applyPurchase = useCallback(async (ident?: string) => {
-    const result = await applyVerifiedBasket(ident)
+    const result = await applyCheckoutSession(ident)
     if (result.user) setUser(result.user)
     return result
   }, [])

@@ -5,11 +5,11 @@ account_id = "9b522ee211d2d81291ed46b7c44f6025"
 workers_dev = true
 
 [vars]
-COLLECTION_SLUG = "collection"
+SITE_URL = "https://elkku01.github.io/astra-website"
 COLLECTION_LIMIT = "100"
 
 # Secrets (uploaded by .github/workflows/store-api.yml, or `wrangler secret put`):
-#   ADMIN_PASSWORD, TEBEX_PUBLIC_TOKEN, TEBEX_WEBHOOK_SECRET
+#   ADMIN_PASSWORD, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
 
 # Old single-blob store. Only read once, to migrate into STORE_DB.
 [[kv_namespaces]]

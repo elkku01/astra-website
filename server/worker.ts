@@ -5,9 +5,9 @@ export interface Env {
   /** Old single-blob KV store. Read once to migrate, never written again. */
   STORE?: KVNamespace
   ADMIN_PASSWORD?: string
-  TEBEX_PUBLIC_TOKEN?: string
-  TEBEX_WEBHOOK_SECRET?: string
-  COLLECTION_SLUG?: string
+  STRIPE_SECRET_KEY?: string
+  STRIPE_WEBHOOK_SECRET?: string
+  SITE_URL?: string
   COLLECTION_LIMIT?: string
 }
 
@@ -41,9 +41,9 @@ export class StoreDB {
       storage,
       config: {
         adminPassword: env.ADMIN_PASSWORD || '',
-        tebexPublicToken: env.TEBEX_PUBLIC_TOKEN || '',
-        tebexWebhookSecret: env.TEBEX_WEBHOOK_SECRET || '',
-        collectionSlug: env.COLLECTION_SLUG || 'collection',
+        stripeSecretKey: env.STRIPE_SECRET_KEY || '',
+        stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET || '',
+        siteUrl: env.SITE_URL || 'https://elkku01.github.io/astra-website',
         collectionLimit: Math.max(1, Number(env.COLLECTION_LIMIT || 100) || 100),
         allowedOrigins: ALLOWED_ORIGINS,
       },

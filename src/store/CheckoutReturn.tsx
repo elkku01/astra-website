@@ -24,7 +24,7 @@ function UnlockMark() {
 export default function CheckoutReturn() {
   const [params] = useSearchParams()
   const cancelled = params.get('cancelled') === '1'
-  const basket = params.get('basket') || params.get('basket-ident') || undefined
+  const sessionId = params.get('session_id') || undefined
   const { applyPurchase, user } = useSession()
   const [phase, setPhase] = useState<Phase>(cancelled ? 'cancelled' : 'checking')
 
@@ -36,7 +36,7 @@ export default function CheckoutReturn() {
       while (alive && attempts < 15) {
         attempts += 1
         try {
-          const result = await applyPurchase(basket)
+          const result = await applyPurchase(sessionId)
           if (!alive) return
           if (result.complete && result.granted.length > 0) {
             setPhase('success')
@@ -59,7 +59,7 @@ export default function CheckoutReturn() {
     return () => {
       alive = false
     }
-  }, [applyPurchase, basket, cancelled])
+  }, [applyPurchase, sessionId, cancelled])
 
   const owned = user ? CAPES.filter((cape) => user.ownedCapeIds.includes(cape.id)).slice(0, 6) : []
   const copy =

@@ -8,25 +8,27 @@
  *   name:<lowercase>      uuidhex of the last known owner of that name
  *   legacy-name:<lower>   ownership imported from the old name-keyed store,
  *                         moved onto a UUID only after Mojang confirms it
- *   claim:<basket ident>  { uuid, at }: a paid basket can be claimed once
+ *   order:<checkout id>   Stripe order: { uuid, username, capes, collection, pi, at }
+ *   pi:<payment intent>   checkout id, to find the order again on refund/dispute
  *   sale:<uuidhex>        1: counted toward the collection limit (one per player)
  *   meta:collectionSold   number
  *   session:<token>       admin session expiry (ms)
  */
-import {
-  capeIdsFromPackages,
-  isCollectionPackage,
-  isFullCollection,
-  knownCapeIds,
-  type BasketPackage,
-} from '../src/store/fulfillment.ts'
-import { CAPES, freeCapeIds } from '../src/store/capes.ts'
+import { isFullCollection, knownCapeIds } from '../src/store/fulfillment.ts'
+import { CAPES, COLLECTION_LAUNCH_PRICE, freeCapeIds, paidCapes } from '../src/store/capes.ts'
 import {
   INVALID_MINECRAFT_ACCOUNT,
   resolveMinecraftAccount,
   type MinecraftAccount,
 } from '../src/store/minecraftAccount.ts'
-import { inspectTebexWebhook } from './tebexWebhook.ts'
+import {
+  checkoutForm,
+  stripeRequester,
+  verifyStripeEvent,
+  type CheckoutLine,
+  type CheckoutSession,
+  type StripeRequest,
+} from './stripe.ts'
 
 export interface StoreStorage {
   get<T>(key: string): Promise<T | undefined>
@@ -36,9 +38,10 @@ export interface StoreStorage {
 
 export type StoreConfig = {
   adminPassword: string
-  tebexPublicToken: string
-  tebexWebhookSecret: string
-  collectionSlug: string
+  stripeSecretKey: string
+  stripeWebhookSecret: string
+  /** Public site root for Stripe's return links, e.g. https://elkku01.github.io/astra-website */
+  siteUrl: string
   collectionLimit: number
   allowedOrigins: string[]
 }
@@ -50,26 +53,27 @@ export type OwnedRecord = {
   collection: boolean
 }
 
-type TebexBasket = {
-  complete?: boolean
-  username?: string | null
-  username_id?: string | null
-  packages?: BasketPackage[]
+type Order = {
+  uuid: string
+  username: string
+  capes: string[]
+  collection: boolean
+  pi: string
+  at: number
+  revoked?: boolean
 }
-
-type Claim = { uuid: string; at: number }
 
 export type StoreDeps = {
   storage: StoreStorage
   config: StoreConfig
   /** Resolves a Java username to its current UUID (Mojang). Injectable for tests. */
   resolveAccount?: (username: string) => Promise<MinecraftAccount>
-  /** Loads a Tebex basket by ident. Injectable for tests. */
-  fetchBasket?: (ident: string, publicToken: string) => Promise<TebexBasket | null>
+  /** Calls the Stripe API. Injectable for tests. */
+  stripe?: StripeRequest
 }
 
 const USERNAME_RE = /^[A-Za-z0-9_]{3,16}$/
-const IDENT_RE = /^[A-Za-z0-9._-]{6,128}$/
+const SESSION_ID_RE = /^cs_(test|live)_[A-Za-z0-9]{10,200}$/
 const SESSION_MS = 4 * 60 * 60 * 1000
 const MAX_BODY = 32 * 1024
 
@@ -85,6 +89,8 @@ function dashed(hex: string): string {
 function nameKey(username = ''): string {
   return username.trim().toLowerCase()
 }
+
+class DuplicateOrder extends Error {}
 
 class HttpError extends Error {
   status: number
@@ -147,29 +153,18 @@ function randomToken() {
   return [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
-async function defaultFetchBasket(ident: string, publicToken: string): Promise<TebexBasket | null> {
-  if (!ident || !publicToken) return null
-  const response = await fetch(
-    `https://headless.tebex.io/api/accounts/${encodeURIComponent(publicToken)}/baskets/${encodeURIComponent(ident)}`,
-    { headers: { Accept: 'application/json' } },
-  )
-  if (!response.ok) return null
-  const body = (await response.json()) as { data?: TebexBasket } & TebexBasket
-  return body.data || body
-}
-
 export class CosmeticsStore {
   private storage: StoreStorage
   private config: StoreConfig
   private resolveAccount: (username: string) => Promise<MinecraftAccount>
-  private fetchBasket: (ident: string, publicToken: string) => Promise<TebexBasket | null>
+  private stripe: StripeRequest
   private mutex = new StoreMutex()
 
   constructor(deps: StoreDeps) {
     this.storage = deps.storage
     this.config = deps.config
     this.resolveAccount = deps.resolveAccount || resolveMinecraftAccount
-    this.fetchBasket = deps.fetchBasket || defaultFetchBasket
+    this.stripe = deps.stripe || stripeRequester(deps.config.stripeSecretKey)
   }
 
   // ---- records ------------------------------------------------------------------
@@ -294,83 +289,123 @@ export class CosmeticsStore {
   // ---- purchases ------------------------------------------------------------------
 
   /**
-   * Grants a paid Tebex basket. Each basket can be claimed exactly once; a
-   * repeat claim for the same player is answered idempotently.
+   * Starts a Stripe Checkout (Managed Payments) for a verified Minecraft
+   * account. Prices come from the catalog on the server, never the browser.
    */
-  async claim(ident: string, bodyName: string) {
-    const basket = await this.fetchBasket(ident, this.config.tebexPublicToken)
-    if (!basket?.complete) {
-      throw new HttpError(409, 'Payment is not complete yet.', { complete: false, granted: [] })
-    }
-    const packages = Array.isArray(basket.packages) ? basket.packages : []
-    const granted = capeIdsFromPackages(packages, this.config.collectionSlug)
-    if (granted.length === 0) {
-      throw new HttpError(400, 'No cloaks were on this payment.', { complete: true, granted: [] })
-    }
-    const basketName = String(basket.username || '').trim()
-    if (USERNAME_RE.test(basketName) && USERNAME_RE.test(bodyName) && nameKey(basketName) !== nameKey(bodyName)) {
-      throw new HttpError(403, 'This payment belongs to a different Minecraft account.', {
-        complete: true,
-        granted: [],
-      })
-    }
-    const username = USERNAME_RE.test(basketName) ? basketName : USERNAME_RE.test(bodyName) ? bodyName : ''
-    if (!username) {
-      throw new HttpError(400, 'Link a Minecraft account so this payment can be assigned.', {
-        complete: true,
-        granted,
-      })
-    }
+  async checkout(username: string, capeIds: string[], collection: boolean) {
     const account = await this.verifiedAccount(username)
     const hex = uuidKey(account.uuid)
-    const collection = isCollectionPackage(packages, this.config.collectionSlug) || isFullCollection(granted)
-
-    // Checked and recorded inside the lock, before anything is granted, so two
-    // racing claims of one basket can never both win.
-    const record = await this.grant(account, granted, collection, {
-      paid: true,
-      before: async () => {
-        const current = await this.storage.get<Claim>(`claim:${ident}`)
-        if (current && current.uuid !== hex) {
-          throw new HttpError(409, 'This payment was already claimed by another account.', {
-            complete: true,
-            granted: [],
-          })
+    const owned = await this.lookup(account.uuid, account.username)
+    const paid = new Set(paidCapes().map((cape) => cape.id))
+    let lines: CheckoutLine[]
+    let ids: string[]
+    if (collection) {
+      if (owned.collection) throw new HttpError(409, 'You already own the entire collection.')
+      const stock = await this.collectionStock()
+      if (stock.remaining <= 0) throw new HttpError(409, 'The launch collection is sold out.')
+      ids = [...paid]
+      lines = [{
+        name: 'Astra Cloaks: Entire Collection',
+        description: `All ${ids.length} paid Astra cloaks for ${account.username}.`,
+        amountCents: Math.round(COLLECTION_LAUNCH_PRICE * 100),
+      }]
+    } else {
+      ids = knownCapeIds(capeIds).filter((id) => paid.has(id) && !owned.ownedCapeIds.includes(id))
+      if (ids.length === 0) throw new HttpError(409, 'You already own these cloaks.')
+      lines = ids.map((id) => {
+        const cape = CAPES.find((item) => item.id === id)!
+        return {
+          name: `Astra Cloak: ${cape.name}`,
+          description: `Unlocks on ${account.username}.`,
+          amountCents: Math.round(cape.price * 100),
         }
-        if (!current) await this.storage.put(`claim:${ident}`, { uuid: hex, at: Date.now() })
+      })
+    }
+    const site = this.config.siteUrl.replace(/\/+$/, '')
+    if (!/^https?:\/\//.test(site)) throw new HttpError(503, 'Store checkout is not configured.')
+    const form = checkoutForm({
+      lines,
+      successUrl: `${site}/store/checkout?session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${site}/store/checkout?cancelled=1`,
+      clientReferenceId: hex,
+      metadata: {
+        uuid: hex,
+        username: account.username,
+        capes: ids.join(','),
+        collection: collection ? '1' : '0',
       },
     })
-    return { ...record, complete: true, granted }
+    const session = (await this.stripe('POST', '/checkout/sessions', form).catch((error: unknown) => {
+      throw new HttpError(502, error instanceof Error ? error.message : 'Could not start checkout.')
+    })) as unknown as CheckoutSession
+    if (!session.url) throw new HttpError(502, 'Stripe did not return a checkout link.')
+    return { url: session.url, id: session.id }
   }
 
-  async webhook(rawBody: string, signature: string, ip: string) {
-    const inspected = await inspectTebexWebhook({
-      rawBody,
-      signature,
-      ip,
-      secret: this.config.tebexWebhookSecret,
+  /** Grants a paid Checkout Session exactly once (safe to call from webhook and return page). */
+  async fulfill(session: CheckoutSession) {
+    if (session.payment_status !== 'paid') return { complete: false, granted: [] as string[] }
+    const meta = session.metadata || {}
+    const hex = uuidKey(meta.uuid || '')
+    const username = String(meta.username || '')
+    if (!hex || !USERNAME_RE.test(username)) throw new HttpError(400, 'Checkout is missing the Minecraft account.')
+    const ids = knownCapeIds(String(meta.capes || '').split(',').filter(Boolean))
+    const collection = meta.collection === '1'
+    const key = `order:${session.id}`
+    const existing = await this.storage.get<Order>(key)
+    if (existing) return { complete: true, granted: existing.capes, uuid: existing.uuid }
+    const pi = typeof session.payment_intent === 'string' ? session.payment_intent : ''
+    let duplicate = false
+    await this.grant({ uuid: dashed(hex), username }, ids, collection || isFullCollection(ids), {
+      paid: true,
+      before: async () => {
+        if (await this.storage.get(key)) {
+          duplicate = true
+          throw new DuplicateOrder()
+        }
+        await this.storage.put(key, { uuid: hex, username, capes: ids, collection, pi, at: Date.now() } satisfies Order)
+        if (pi) await this.storage.put(`pi:${pi}`, session.id)
+      },
+    }).catch((error: unknown) => {
+      if (!(error instanceof DuplicateOrder)) throw error
     })
-    if (inspected.kind === 'unauthorized') throw new HttpError(401, 'Invalid webhook signature.')
-    if (inspected.kind === 'invalid') throw new HttpError(400, 'Invalid webhook.')
-    if (inspected.kind === 'validation') return { id: inspected.id }
-    if (inspected.kind === 'ignored') return { received: true, type: inspected.type }
+    return { complete: true, granted: ids, uuid: dashed(hex), duplicate }
+  }
 
-    const granted = capeIdsFromPackages(inspected.packages, this.config.collectionSlug)
-    if (!USERNAME_RE.test(inspected.username) || granted.length === 0) {
-      return { received: true, granted: [], complete: true }
+  /** Return-page check: the webhook usually got there first; if not, ask Stripe directly. */
+  async checkoutStatus(sessionId: string) {
+    if (!SESSION_ID_RE.test(sessionId)) throw new HttpError(400, 'Missing checkout id.')
+    const order = await this.storage.get<Order>(`order:${sessionId}`)
+    if (order) return { complete: true, granted: order.capes, uuid: dashed(order.uuid), username: order.username }
+    const session = (await this.stripe('GET', `/checkout/sessions/${encodeURIComponent(sessionId)}`).catch(() => null)) as
+      | CheckoutSession
+      | null
+    if (!session) return { complete: false, granted: [] as string[] }
+    const result = await this.fulfill(session)
+    return { ...result, username: session.metadata?.username || '' }
+  }
+
+  async stripeWebhook(rawBody: string, signature: string) {
+    const event = await verifyStripeEvent(rawBody, signature, this.config.stripeWebhookSecret)
+    if (!event) throw new HttpError(400, 'Invalid Stripe signature.')
+    const type = String(event.type || '')
+    const object = ((event.data as { object?: unknown } | undefined)?.object || {}) as Record<string, unknown>
+    if (type === 'checkout.session.completed' || type === 'checkout.session.async_payment_succeeded') {
+      return { received: true, ...(await this.fulfill(object as unknown as CheckoutSession)) }
     }
-    // Prefer the UUID Tebex verified at checkout; fall back to Mojang. If
-    // neither is available, fail so Tebex retries later instead of dropping it.
-    let account: MinecraftAccount
-    if (uuidKey(inspected.uuid)) {
-      account = { username: inspected.username, uuid: inspected.uuid }
-    } else {
-      account = await this.verifiedAccount(inspected.username)
+    // Money went back (full refund) or is being disputed: take the cloaks back.
+    const fullRefund = type === 'charge.refunded' && object.refunded === true
+    if (fullRefund || type === 'charge.dispute.created') {
+      const pi = String(object.payment_intent || '')
+      const sessionId = pi ? await this.storage.get<string>(`pi:${pi}`) : undefined
+      const order = sessionId ? await this.storage.get<Order>(`order:${sessionId}`) : undefined
+      if (order && !order.revoked) {
+        await this.revoke({ uuid: dashed(order.uuid), username: order.username }, order.capes)
+        await this.storage.put(`order:${sessionId}`, { ...order, revoked: true })
+        return { received: true, revoked: order.capes }
+      }
     }
-    const collection =
-      isCollectionPackage(inspected.packages, this.config.collectionSlug) || isFullCollection(granted)
-    const record = await this.grant(account, granted, collection, { paid: true })
-    return { ...record, complete: true, granted }
+    return { received: true, ignored: type }
   }
 
   private async verifiedAccount(username: string): Promise<MinecraftAccount> {
@@ -438,24 +473,23 @@ export class CosmeticsStore {
     }
 
     try {
-      if (path === '/api/webhooks/tebex' && method === 'GET') return send(200, { ok: true, endpoint: 'webhooks' })
-      if (path === '/api/webhooks/tebex' && method === 'POST') {
-        const raw = await readText(request)
-        return send(200, await this.webhook(raw, request.headers.get('X-Signature') || '', ip))
+      if (path === '/api/webhooks/stripe' && method === 'POST') {
+        const raw = await request.text() // exact bytes are needed for the signature
+        return send(200, await this.stripeWebhook(raw, request.headers.get('Stripe-Signature') || ''))
       }
 
       if (path === '/api/collection-stock' && method === 'GET') return send(200, await this.collectionStock())
-      // Sales are counted when a verified purchase is granted; kept for old clients.
-      if (path === '/api/collection-sale' && method === 'POST') {
-        return send(200, { ...(await this.collectionStock()), recorded: false })
+
+      if (path === '/api/checkout' && method === 'POST') {
+        if (limited('checkout', ip, 20, 10 * 60 * 1000)) throw new HttpError(429, 'Too many checkouts. Try again in a few minutes.')
+        const body = await readJson(request)
+        const capeIds = Array.isArray(body.capeIds) ? body.capeIds.map(String) : []
+        return send(200, await this.checkout(String(body.username || '').trim(), capeIds, body.collection === true))
       }
 
-      if (path === '/api/cosmetics/claim' && method === 'POST') {
-        if (limited('claim', ip, 20, 10 * 60 * 1000)) throw new HttpError(429, 'Too many claim attempts. Try again in a few minutes.')
-        const body = await readJson(request)
-        const ident = String(body.ident || '').trim()
-        if (!IDENT_RE.test(ident)) throw new HttpError(400, 'Missing checkout id.')
-        return send(200, await this.claim(ident, String(body.username || '').trim()))
+      if (path === '/api/checkout/status' && method === 'GET') {
+        if (limited('status', ip, 120, 10 * 60 * 1000)) throw new HttpError(429, 'Too many requests.')
+        return send(200, await this.checkoutStatus(url.searchParams.get('session_id') || ''))
       }
 
       if (

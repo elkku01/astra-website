@@ -22,9 +22,9 @@ jobs:
           # Only names listed here are uploaded as Worker secrets; values come from env.
           secrets: |
             ADMIN_PASSWORD
-            TEBEX_PUBLIC_TOKEN
-            TEBEX_WEBHOOK_SECRET
+            STRIPE_SECRET_KEY
+            STRIPE_WEBHOOK_SECRET
         env:
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-          TEBEX_PUBLIC_TOKEN: ${{ secrets.TEBEX_PUBLIC_TOKEN }}
-          TEBEX_WEBHOOK_SECRET: ${{ secrets.TEBEX_WEBHOOK_SECRET }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}

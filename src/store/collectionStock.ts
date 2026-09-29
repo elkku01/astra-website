@@ -29,18 +29,6 @@ export async function fetchCollectionStock(): Promise<CollectionStock> {
   }
 }
 
-export async function recordCollectionSale(ident: string): Promise<void> {
-  try {
-    await fetch(storeApiUrl('/api/collection-sale'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ ident }),
-    })
-  } catch {
-    // Remaining count updates on the next stock refresh if this fails.
-  }
-}
-
 export function useCollectionStock(): CollectionStock {
   const [stock, setStock] = useState<CollectionStock>({
     limit: COLLECTION_LIMIT,

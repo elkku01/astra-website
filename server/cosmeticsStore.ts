@@ -92,9 +92,9 @@ function isStorePath(url = '') {
 export function cosmeticsStoreApi(
   options: {
     adminPassword?: string
-    tebexPublicToken?: string
-    tebexWebhookSecret?: string
-    collectionSlug?: string
+    stripeSecretKey?: string
+    stripeWebhookSecret?: string
+    siteUrl?: string
     collectionLimit?: number
   } = {},
 ): Plugin {
@@ -108,9 +108,9 @@ export function cosmeticsStoreApi(
           storage,
           config: {
             adminPassword: options.adminPassword || '',
-            tebexPublicToken: options.tebexPublicToken || '',
-            tebexWebhookSecret: options.tebexWebhookSecret || '',
-            collectionSlug: options.collectionSlug || 'collection',
+            stripeSecretKey: options.stripeSecretKey || '',
+            stripeWebhookSecret: options.stripeWebhookSecret || '',
+            siteUrl: options.siteUrl || 'http://localhost:5173',
             collectionLimit: options.collectionLimit && options.collectionLimit > 0 ? options.collectionLimit : 100,
             allowedOrigins: [
               'http://127.0.0.1:5173',

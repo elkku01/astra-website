@@ -1,7 +1,5 @@
 import { CAPES, COLLECTION_LAUNCH_PRICE, freeCapeIds, paidCapes } from './capes'
-import { capeIdsFromBasket, clearPendingBasket, getTebexBasket, takePendingBasket } from './tebex'
-import { recordCollectionSale } from './collectionStock'
-import { isFullCollection } from './fulfillment'
+import { fetchCheckoutStatus } from './checkout'
 import { storeApiUrl } from './storeApi'
 import { resolveMinecraftAccount, USERNAME_RE } from './minecraftAccount'
 
@@ -172,63 +170,6 @@ async function fetchOwnedFromStore(uuid: string, username: string): Promise<{
   }
 }
 
-async function claimPurchase(
-  ident: string,
-  user: StoreUser | null,
-): Promise<{
-  ownedCapeIds: string[]
-  collection: boolean
-  granted: string[]
-  username: string
-  uuid: string
-} | null> {
-  const payload = JSON.stringify({
-    ident,
-    username: user?.username || '',
-    uuid: user?.uuid || '',
-  })
-  const urls = [storeApiUrl('/api/cosmetics/claim')]
-  for (const url of urls) {
-    let response: Response
-    try {
-      response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: payload,
-      })
-    } catch {
-      continue
-    }
-    if (response.status === 409) return null
-    if (response.status === 403) {
-      const body = (await response.json().catch(() => null)) as { error?: string } | null
-      throw new Error(body?.error || 'This payment belongs to a different Minecraft account.')
-    }
-    if (!response.ok) continue
-    const body = (await response.json()) as {
-      ownedCapeIds?: unknown
-      collection?: unknown
-      granted?: unknown
-      username?: unknown
-      uuid?: unknown
-    }
-    const granted = Array.isArray(body.granted)
-      ? body.granted.filter((id): id is string => typeof id === 'string')
-      : []
-    const ownedCapeIds = Array.isArray(body.ownedCapeIds)
-      ? body.ownedCapeIds.filter((id): id is string => typeof id === 'string')
-      : granted
-    return {
-      ownedCapeIds,
-      collection: Boolean(body.collection),
-      granted,
-      username: typeof body.username === 'string' ? body.username : user?.username || '',
-      uuid: typeof body.uuid === 'string' ? body.uuid : user?.uuid || '',
-    }
-  }
-  return null
-}
-
 export async function loginWithUsername(username: string): Promise<StoreUser> {
   const profile = await lookupMinecraft(username)
   const existing = readSession()
@@ -308,54 +249,29 @@ export function ownsCape(user: StoreUser | null, capeId: string): boolean {
   return user.collection || user.ownedCapeIds.includes(capeId)
 }
 
-export async function applyVerifiedBasket(ident = takePendingBasket()): Promise<PurchaseResult> {
+/**
+ * Confirms a Stripe checkout after the redirect back. The store API grants the
+ * cloaks (from Stripe's webhook, or by checking with Stripe here); this only
+ * reads the result and refreshes the owned list from the server.
+ */
+export async function applyCheckoutSession(sessionId?: string): Promise<PurchaseResult> {
   const session = readSession()
-  if (!ident) return { user: session, complete: false, granted: [] }
-
-  const claimed = await claimPurchase(ident, session)
-  if (claimed && claimed.granted.length > 0) {
-    const next = withCollection({
-      username: claimed.username || session?.username || '',
-      uuid: claimed.uuid || session?.uuid || '',
-      skinUrl: session?.skinUrl,
-      ownedCapeIds: claimed.ownedCapeIds,
-      collection: claimed.collection,
-    })
-    writeSession(next)
-    clearPendingBasket()
-    return { user: next, complete: true, granted: claimed.granted }
-  }
-
-  try {
-    const basket = await getTebexBasket(ident)
-    if (!basket.complete) return { user: session, complete: false, granted: [] }
-    const ids = capeIdsFromBasket(basket)
-    if (ids.length === 0) return { user: session, complete: true, granted: [] }
-    const basketName = String(basket.username || '').trim()
-    const sessionName = session?.username || ''
-    if (
-      basketName &&
-      sessionName &&
-      basketName.toLowerCase() !== sessionName.toLowerCase()
-    ) {
-      throw new Error('This payment belongs to a different Minecraft account.')
-    }
-    const username = basketName || sessionName
-    if (!username) return { user: session, complete: true, granted: ids }
-    const next = withCollection({
-      username,
-      uuid: session?.uuid || '',
-      skinUrl: session?.skinUrl,
-      ownedCapeIds: [...new Set([...(session?.ownedCapeIds || []), ...ids])],
-      collection: isFullCollection(ids) || Boolean(session?.collection),
-    })
-    writeSession(next)
-    if (next.collection) void recordCollectionSale(ident)
-    clearPendingBasket()
-    return { user: next, complete: true, granted: ids }
-  } catch {
-    return { user: session, complete: false, granted: [] }
-  }
+  if (!sessionId) return { user: session, complete: false, granted: [] }
+  const status = await fetchCheckoutStatus(sessionId)
+  if (!status.complete) return { user: session, complete: false, granted: [] }
+  const username = status.username || session?.username || ''
+  if (!username) return { user: session, complete: true, granted: status.granted }
+  const remote = await fetchOwnedFromStore(status.uuid || '', username)
+  const same = session && session.username.toLowerCase() === username.toLowerCase() ? session : null
+  const next = withCollection({
+    username,
+    uuid: status.uuid || same?.uuid || '',
+    skinUrl: same?.skinUrl,
+    ownedCapeIds: remote ? remote.ownedCapeIds : [...new Set([...(same?.ownedCapeIds || []), ...status.granted])],
+    collection: remote ? remote.collection : Boolean(same?.collection),
+  })
+  writeSession(next)
+  return { user: next, complete: true, granted: status.granted }
 }
 
 export function storeHref(): string {

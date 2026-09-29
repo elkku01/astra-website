@@ -1,3 +1,4 @@
+import { storeApiUrl } from './store/storeApi'
 import { UPDATES_REPO } from './download'
 
 export type Health = 'checking' | 'operational' | 'degraded' | 'unavailable'
@@ -95,13 +96,8 @@ async function checkMicrosoft(): Promise<Health> {
   return ok ? 'operational' : 'unavailable'
 }
 
-async function checkTebex(): Promise<Health> {
-  const token = String(import.meta.env.VITE_TEBEX_PUBLIC_TOKEN || '').trim()
-  if (!token) return 'unavailable'
-  const ok = await probe(
-    `https://headless.tebex.io/api/accounts/${encodeURIComponent(token)}`,
-    (response) => response.ok,
-  )
+async function checkStore(): Promise<Health> {
+  const ok = await probe(storeApiUrl('/api/collection-stock'), (response) => response.ok)
   return ok ? 'operational' : 'unavailable'
 }
 
@@ -133,9 +129,7 @@ const CHECKS: { id: string; name: string; run: () => Promise<Health> }[] = [
   { id: 'minecraft', name: 'Minecraft services', run: checkMinecraft },
   { id: 'microsoft', name: 'Microsoft login', run: checkMicrosoft },
   { id: 'discord', name: 'Discord', run: checkDiscord },
-  ...(String(import.meta.env.VITE_TEBEX_PUBLIC_TOKEN || '').trim()
-    ? [{ id: 'tebex', name: 'Store payments', run: checkTebex }]
-    : []),
+  { id: 'store', name: 'Store', run: checkStore },
 ]
 
 export function emptyStatus(): SystemRow[] {

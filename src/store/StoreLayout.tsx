@@ -7,7 +7,7 @@ import AccountMenu from './AccountMenu'
 import CheckoutModal from './CheckoutModal'
 import AdminDock from './AdminDock'
 import { useSession } from './session'
-import { startTebexCheckout } from './tebex'
+import { startCheckout } from './checkout'
 import { formatCollectionStock, useCollectionStock } from './collectionStock'
 import './Store.css'
 
@@ -68,11 +68,11 @@ export default function StoreLayout() {
     }
     setBusy(true)
     try {
-      const ids =
-        checkout.kind === 'collection'
-          ? paidCapes().map((cape) => cape.id)
-          : [checkout.cape.id]
-      await startTebexCheckout({ username: user.username, capeIds: ids })
+      await startCheckout({
+        username: user.username,
+        capeIds: checkout.kind === 'collection' ? [] : [checkout.cape.id],
+        collection: checkout.kind === 'collection',
+      })
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Could not open checkout')
       setBusy(false)

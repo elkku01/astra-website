@@ -1,5 +1,4 @@
 import { formatPrice } from './capes'
-import { isTebexConfigured } from './tebex'
 
 type Props = {
   title: string
@@ -24,8 +23,6 @@ export default function CheckoutModal({
   onLink,
   onClose,
 }: Props) {
-  const ready = isTebexConfigured()
-
   return (
     <div
       className={`modal-back ${busy ? 'buying' : ''}`}
@@ -39,12 +36,9 @@ export default function CheckoutModal({
         <p className="modal-lead">{detail}</p>
         <p className="modal-price">{formatPrice(price)}</p>
         <p className="modal-note">
-          Payment is processed securely. Card details never touch this site. Cloaks unlock on the
-          Minecraft account you authorize at checkout.
+          Secure checkout by Stripe, our reseller, which also handles VAT and sales tax. Card
+          details never touch this site. Cloaks unlock on your linked Minecraft account.
         </p>
-        {!ready ? (
-          <p className="error">Checkout is not available right now. Restart the store server and try again.</p>
-        ) : null}
         {soldOut ? (
           <p className="error">This launch collection is sold out.</p>
         ) : null}
@@ -64,7 +58,7 @@ export default function CheckoutModal({
               type="button"
               className="btn-primary"
               onClick={onConfirm}
-              disabled={busy || !ready || needsAccount || soldOut}
+              disabled={busy || needsAccount || soldOut}
             >
               {soldOut ? 'Sold out' : busy ? 'Unlocking…' : `Pay ${formatPrice(price)}`}
             </button>
