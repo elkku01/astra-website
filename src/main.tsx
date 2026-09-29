@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
 import StatusPage from './StatusPage.tsx'
+import LegalPage from './LegalPage.tsx'
 import PageEnter from './PageEnter.tsx'
 import { SessionProvider } from './store/session.tsx'
 import StoreLayout from './store/StoreLayout.tsx'
@@ -50,6 +51,17 @@ createRoot(document.getElementById('root')!).render(
               </PageEnter>
             }
           />
+          <Route
+            path="/legal"
+            element={
+              <PageEnter>
+                <LegalPage />
+              </PageEnter>
+            }
+          />
+          <Route path="/privacy" element={<Navigate to="/legal#privacy" replace />} />
+          <Route path="/terms" element={<Navigate to="/legal#terms" replace />} />
+          <Route path="/refunds" element={<Navigate to="/legal#purchases" replace />} />
           <Route path="/store" element={<StoreLayout />}>
             <Route index element={<StoreHome />} />
             <Route path="collection" element={<CollectionPage />} />

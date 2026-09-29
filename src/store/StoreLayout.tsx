@@ -150,6 +150,12 @@ export default function StoreLayout() {
           onClose={() => setCheckout(null)}
         />
       ) : null}
+      <footer className="store-legal">
+        <Link to="/legal#privacy">Privacy</Link>
+        <Link to="/legal#terms">Terms</Link>
+        <Link to="/legal#purchases">Purchases &amp; refunds</Link>
+        <span>Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</span>
+      </footer>
       <AdminDock />
     </div>
   )

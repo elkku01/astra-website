@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { formatPrice } from './capes'
 
 type Props = {
@@ -23,6 +25,7 @@ export default function CheckoutModal({
   onLink,
   onClose,
 }: Props) {
+  const [agreed, setAgreed] = useState(false)
   return (
     <div
       className={`modal-back ${busy ? 'buying' : ''}`}
@@ -39,6 +42,14 @@ export default function CheckoutModal({
           Secure checkout by Stripe, our reseller, which also handles VAT and sales tax. Card
           details never touch this site. Cloaks unlock on your linked Minecraft account.
         </p>
+        <label className="modal-consent">
+          <input type="checkbox" checked={agreed} onChange={(event) => setAgreed(event.target.checked)} />
+          <span>
+            I agree to the <Link to="/legal#terms" target="_blank">Terms</Link> and want the cosmetic
+            delivered immediately. I understand I lose my 14-day right of withdrawal once it is
+            delivered (<Link to="/legal#purchases" target="_blank">details</Link>).
+          </span>
+        </label>
         {soldOut ? (
           <p className="error">This launch collection is sold out.</p>
         ) : null}
@@ -58,7 +69,7 @@ export default function CheckoutModal({
               type="button"
               className="btn-primary"
               onClick={onConfirm}
-              disabled={busy || needsAccount || soldOut}
+              disabled={busy || needsAccount || soldOut || !agreed}
             >
               {soldOut ? 'Sold out' : busy ? 'Unlocking…' : `Pay ${formatPrice(price)}`}
             </button>

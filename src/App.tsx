@@ -319,8 +319,14 @@ function App() {
             Status
           </Link>
           <span aria-hidden="true"> · </span>
-          © 2026 Astra Client. Not affiliated with Mojang, Microsoft, Lunar, or
-          Dawn.
+          <Link to="/legal#privacy">Privacy</Link>
+          <span aria-hidden="true"> · </span>
+          <Link to="/legal#terms">Terms</Link>
+          <span aria-hidden="true"> · </span>
+          <Link to="/legal#purchases">Refunds</Link>
+          <span aria-hidden="true"> · </span>
+          © 2026 Astra Client. Not an official Minecraft product. Not approved by or
+          associated with Mojang or Microsoft. Not affiliated with Lunar or Dawn.
         </p>
       </footer>
     </div>
