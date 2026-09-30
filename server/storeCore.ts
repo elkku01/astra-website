@@ -15,6 +15,7 @@
  *   session:<token>       admin session expiry (ms)
  */
 import { isFullCollection, knownCapeIds } from '../src/store/fulfillment.ts'
+import { EARLY_ACCESS_LIMIT, EARLY_ACCESS_WING, WINGS, knownWingIds } from '../src/store/wings.ts'
 import { CAPES, COLLECTION_LAUNCH_PRICE, freeCapeIds, paidCapes } from '../src/store/capes.ts'
 import {
   INVALID_MINECRAFT_ACCOUNT,
@@ -44,6 +45,8 @@ export type StoreConfig = {
   siteUrl: string
   collectionLimit: number
   allowedOrigins: string[]
+  /** Shared secret the presence API uses for server-to-server calls (early-access grants). */
+  internalKey?: string
 }
 
 export type OwnedRecord = {
@@ -51,12 +54,14 @@ export type OwnedRecord = {
   username: string
   ownedCapeIds: string[]
   collection: boolean
+  ownedWingIds?: string[]
 }
 
 type Order = {
   uuid: string
   username: string
   capes: string[]
+  wings?: string[]
   collection: boolean
   pi: string
   at: number
@@ -171,7 +176,11 @@ export class CosmeticsStore {
 
   private withFree(record: OwnedRecord): OwnedRecord {
     const owned = record.collection ? CAPES.map((cape) => cape.id) : record.ownedCapeIds
-    return { ...record, ownedCapeIds: [...new Set([...owned, ...freeCapeIds()])] }
+    return {
+      ...record,
+      ownedCapeIds: [...new Set([...owned, ...freeCapeIds()])],
+      ownedWingIds: knownWingIds(record.ownedWingIds || []),
+    }
   }
 
   private async player(hex: string): Promise<OwnedRecord | null> {
@@ -219,7 +228,12 @@ export class CosmeticsStore {
     account: MinecraftAccount,
     capeIds: string[],
     collection: boolean,
-    options: { paid?: boolean; before?: () => Promise<void>; extra?: () => Promise<void> } = {},
+    options: {
+      paid?: boolean
+      wings?: string[]
+      before?: () => Promise<void>
+      extra?: () => Promise<void>
+    } = {},
   ): Promise<OwnedRecord> {
     const hex = uuidKey(account.uuid)
     if (!hex) throw new HttpError(400, INVALID_MINECRAFT_ACCOUNT)
@@ -232,6 +246,7 @@ export class CosmeticsStore {
         username: account.username,
         ownedCapeIds: owned,
         collection: Boolean(collection || previous?.collection || isFullCollection(owned)),
+        ownedWingIds: knownWingIds([...(previous?.ownedWingIds || []), ...(options.wings || [])]),
       }
       await this.storage.put(`player:${hex}`, record)
       await this.storage.put(`name:${nameKey(account.username)}`, hex)
@@ -242,18 +257,20 @@ export class CosmeticsStore {
     })
   }
 
-  async revoke(account: MinecraftAccount, capeIds: string[]): Promise<OwnedRecord> {
+  async revoke(account: MinecraftAccount, capeIds: string[], wingIds: string[] = []): Promise<OwnedRecord> {
     const hex = uuidKey(account.uuid)
     if (!hex) throw new HttpError(400, INVALID_MINECRAFT_ACCOUNT)
     return this.mutex.run(async () => {
       const previous = await this.player(hex)
       const remove = new Set(capeIds)
+      const removeWings = new Set(wingIds)
       const start = previous?.collection ? CAPES.map((cape) => cape.id) : previous?.ownedCapeIds || []
       const record: OwnedRecord = {
         uuid: dashed(hex),
         username: account.username,
         ownedCapeIds: start.filter((id) => !remove.has(id)),
         collection: false,
+        ownedWingIds: (previous?.ownedWingIds || []).filter((id) => !removeWings.has(id)),
       }
       await this.storage.put(`player:${hex}`, record)
       await this.storage.put(`name:${nameKey(account.username)}`, hex)
@@ -292,14 +309,32 @@ export class CosmeticsStore {
    * Starts a Stripe Checkout (Managed Payments) for a verified Minecraft
    * account. Prices come from the catalog on the server, never the browser.
    */
-  async checkout(username: string, capeIds: string[], collection: boolean) {
+  async checkout(username: string, capeIds: string[], collection: boolean, wingIds: string[] = []) {
+    if (!this.config.stripeSecretKey) {
+      throw new HttpError(503, 'Purchases are paused for a moment while we move to a new payment provider. Please try again soon.')
+    }
     const account = await this.verifiedAccount(username)
     const hex = uuidKey(account.uuid)
     const owned = await this.lookup(account.uuid, account.username)
     const paid = new Set(paidCapes().map((cape) => cape.id))
     let lines: CheckoutLine[]
-    let ids: string[]
-    if (collection) {
+    let ids: string[] = []
+    let wings: string[] = []
+    if (wingIds.length) {
+      // Only wings that are for sale; Obsidian (early access) can never be bought.
+      wings = knownWingIds(wingIds).filter(
+        (id) => WINGS.find((wing) => wing.id === id)?.purchasable && !(owned.ownedWingIds || []).includes(id),
+      )
+      if (wings.length === 0) throw new HttpError(409, 'Those wings are not for sale or you already own them.')
+      lines = wings.map((id) => {
+        const wing = WINGS.find((item) => item.id === id)!
+        return {
+          name: `Astra Wings: ${wing.name}`,
+          description: `Unlocks on ${account.username}.`,
+          amountCents: Math.round(wing.price * 100),
+        }
+      })
+    } else if (collection) {
       if (owned.collection) throw new HttpError(409, 'You already own the entire collection.')
       const stock = await this.collectionStock()
       if (stock.remaining <= 0) throw new HttpError(409, 'The launch collection is sold out.')
@@ -332,6 +367,7 @@ export class CosmeticsStore {
         uuid: hex,
         username: account.username,
         capes: ids.join(','),
+        wings: wings.join(','),
         collection: collection ? '1' : '0',
       },
     })
@@ -350,33 +386,39 @@ export class CosmeticsStore {
     const username = String(meta.username || '')
     if (!hex || !USERNAME_RE.test(username)) throw new HttpError(400, 'Checkout is missing the Minecraft account.')
     const ids = knownCapeIds(String(meta.capes || '').split(',').filter(Boolean))
+    const wings = knownWingIds(String(meta.wings || '').split(',').filter(Boolean)).filter(
+      (id) => WINGS.find((wing) => wing.id === id)?.purchasable,
+    )
     const collection = meta.collection === '1'
     const key = `order:${session.id}`
     const existing = await this.storage.get<Order>(key)
-    if (existing) return { complete: true, granted: existing.capes, uuid: existing.uuid }
+    if (existing) return { complete: true, granted: [...existing.capes, ...(existing.wings || [])], uuid: existing.uuid }
     const pi = typeof session.payment_intent === 'string' ? session.payment_intent : ''
     let duplicate = false
     await this.grant({ uuid: dashed(hex), username }, ids, collection || isFullCollection(ids), {
       paid: true,
+      wings,
       before: async () => {
         if (await this.storage.get(key)) {
           duplicate = true
           throw new DuplicateOrder()
         }
-        await this.storage.put(key, { uuid: hex, username, capes: ids, collection, pi, at: Date.now() } satisfies Order)
+        await this.storage.put(key, { uuid: hex, username, capes: ids, wings, collection, pi, at: Date.now() } satisfies Order)
         if (pi) await this.storage.put(`pi:${pi}`, session.id)
       },
     }).catch((error: unknown) => {
       if (!(error instanceof DuplicateOrder)) throw error
     })
-    return { complete: true, granted: ids, uuid: dashed(hex), duplicate }
+    return { complete: true, granted: [...ids, ...wings], uuid: dashed(hex), duplicate }
   }
 
   /** Return-page check: the webhook usually got there first; if not, ask Stripe directly. */
   async checkoutStatus(sessionId: string) {
     if (!SESSION_ID_RE.test(sessionId)) throw new HttpError(400, 'Missing checkout id.')
     const order = await this.storage.get<Order>(`order:${sessionId}`)
-    if (order) return { complete: true, granted: order.capes, uuid: dashed(order.uuid), username: order.username }
+    if (order) {
+      return { complete: true, granted: [...order.capes, ...(order.wings || [])], uuid: dashed(order.uuid), username: order.username }
+    }
     const session = (await this.stripe('GET', `/checkout/sessions/${encodeURIComponent(sessionId)}`).catch(() => null)) as
       | CheckoutSession
       | null
@@ -400,12 +442,54 @@ export class CosmeticsStore {
       const sessionId = pi ? await this.storage.get<string>(`pi:${pi}`) : undefined
       const order = sessionId ? await this.storage.get<Order>(`order:${sessionId}`) : undefined
       if (order && !order.revoked) {
-        await this.revoke({ uuid: dashed(order.uuid), username: order.username }, order.capes)
+        await this.revoke({ uuid: dashed(order.uuid), username: order.username }, order.capes, order.wings || [])
         await this.storage.put(`order:${sessionId}`, { ...order, revoked: true })
         return { received: true, revoked: order.capes }
       }
     }
     return { received: true, ignored: type }
+  }
+
+  /**
+   * Grants the early-access wings to a player the presence API has verified
+   * (Mojang-signed certificate). Counted under the store lock, so never more
+   * than EARLY_ACCESS_LIMIT players get them. Each UUID can claim once.
+   */
+  async earlyAccess(uuid: string, username: string) {
+    const hex = uuidKey(uuid)
+    if (!hex || !USERNAME_RE.test(username)) throw new HttpError(400, 'Invalid player.')
+    let outcome: 'granted' | 'already' | 'full' = 'granted'
+    await this.grant({ uuid: dashed(hex), username }, [], false, {
+      wings: [EARLY_ACCESS_WING],
+      before: async () => {
+        if (await this.storage.get(`early:${hex}`)) {
+          outcome = 'already'
+          throw new DuplicateOrder()
+        }
+        const claimed = Number(await this.storage.get<number>('meta:earlyAccessClaimed')) || 0
+        if (claimed >= EARLY_ACCESS_LIMIT) {
+          outcome = 'full'
+          throw new DuplicateOrder()
+        }
+        await this.storage.put(`early:${hex}`, Date.now())
+        await this.storage.put('meta:earlyAccessClaimed', claimed + 1)
+      },
+    }).catch((error: unknown) => {
+      if (!(error instanceof DuplicateOrder)) throw error
+    })
+    return { outcome, ...(await this.earlyAccessStock()) }
+  }
+
+  async earlyAccessStock() {
+    const claimed = Math.min(Number(await this.storage.get<number>('meta:earlyAccessClaimed')) || 0, EARLY_ACCESS_LIMIT)
+    return { limit: EARLY_ACCESS_LIMIT, claimed, remaining: EARLY_ACCESS_LIMIT - claimed }
+  }
+
+  private async internalAuthorized(request: Request) {
+    const expected = this.config.internalKey || ''
+    const given = bearerToken(request)
+    if (expected.length < 32 || !given) return false
+    return passwordsMatch(given, expected)
   }
 
   private async verifiedAccount(username: string): Promise<MinecraftAccount> {
@@ -484,7 +568,17 @@ export class CosmeticsStore {
         if (limited('checkout', ip, 20, 10 * 60 * 1000)) throw new HttpError(429, 'Too many checkouts. Try again in a few minutes.')
         const body = await readJson(request)
         const capeIds = Array.isArray(body.capeIds) ? body.capeIds.map(String) : []
-        return send(200, await this.checkout(String(body.username || '').trim(), capeIds, body.collection === true))
+        const wingIds = Array.isArray(body.wingIds) ? body.wingIds.map(String) : []
+        return send(200, await this.checkout(String(body.username || '').trim(), capeIds, body.collection === true, wingIds))
+      }
+
+      if (path === '/api/early-access' && method === 'GET') return send(200, await this.earlyAccessStock())
+
+      // Server-to-server only: the presence API reports a verified launcher sign-in.
+      if (path === '/api/internal/early-access' && method === 'POST') {
+        if (!(await this.internalAuthorized(request))) throw new HttpError(401, 'Unauthorized.')
+        const body = await readJson(request)
+        return send(200, await this.earlyAccess(String(body.uuid || ''), String(body.username || '').trim()))
       }
 
       if (path === '/api/checkout/status' && method === 'GET') {

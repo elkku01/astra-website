@@ -8,6 +8,7 @@ import CheckoutModal from './CheckoutModal'
 import AdminDock from './AdminDock'
 import { useSession } from './session'
 import { startCheckout } from './checkout'
+import type { Wing } from './wings'
 import { formatCollectionStock, useCollectionStock } from './collectionStock'
 import './Store.css'
 
@@ -18,11 +19,13 @@ function asset(path: string) {
 export type CheckoutTarget =
   | { kind: 'cape'; cape: Cape }
   | { kind: 'collection' }
+  | { kind: 'wing'; wing: Wing }
 
 export type StoreOutlet = {
   openCheckout: (target: CheckoutTarget) => void
   openAccount: () => void
   owns: (id: string) => boolean
+  ownsWing: (id: string) => boolean
 }
 
 export default function StoreLayout() {
@@ -57,6 +60,10 @@ export default function StoreLayout() {
       setAccountOpen(true)
       return
     }
+    if (checkout.kind === 'wing' && !checkout.wing.purchasable) {
+      setCheckout(null)
+      return
+    }
     if (checkout.kind === 'cape' && isFreeCape(checkout.cape)) {
       setCheckout(null)
       return
@@ -70,8 +77,9 @@ export default function StoreLayout() {
     try {
       await startCheckout({
         username: user.username,
-        capeIds: checkout.kind === 'collection' ? [] : [checkout.cape.id],
+        capeIds: checkout.kind === 'cape' ? [checkout.cape.id] : [],
         collection: checkout.kind === 'collection',
+        wingIds: checkout.kind === 'wing' ? [checkout.wing.id] : [],
       })
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Could not open checkout')
@@ -81,11 +89,17 @@ export default function StoreLayout() {
 
   const cape = checkout?.kind === 'cape' ? checkout.cape : getCape('')
   const checkoutTitle =
-    checkout?.kind === 'collection' ? 'Unlock entire collection' : cape?.name || ''
+    checkout?.kind === 'wing'
+      ? checkout.wing.name
+      : checkout?.kind === 'collection'
+        ? 'Unlock entire collection'
+        : cape?.name || ''
   const checkoutPrice =
-    checkout?.kind === 'collection' ? collectionPrice() : cape?.price || 0
+    checkout?.kind === 'wing' ? checkout.wing.price : checkout?.kind === 'collection' ? collectionPrice() : cape?.price || 0
   const checkoutDetail =
-    checkout?.kind === 'collection'
+    checkout?.kind === 'wing'
+      ? `${checkout.wing.blurb} Unlocks in Astra Client on your linked Minecraft account.`
+      : checkout?.kind === 'collection'
       ? `All ${paidCapes().length} paid cloaks from the Astra client, assigned after payment. ${formatCollectionStock(stock)}. Astra-branded cloaks stay free.`
       : cape?.blurb || ''
 
@@ -129,6 +143,7 @@ export default function StoreLayout() {
               openCheckout: setCheckout,
               openAccount: () => setAccountOpen(true),
               owns: (id: string) => ownsCape(user, id),
+              ownsWing: (id: string) => Boolean(user?.ownedWingIds?.includes(id)),
             } satisfies StoreOutlet
           }
         />

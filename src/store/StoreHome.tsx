@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import WingsSection from './WingsSection'
 import { Link, useOutletContext } from 'react-router-dom'
 import CapeCard from './CapeCard'
 import { CAPES, COLLECTION_LAUNCH_PRICE, COLLECTION_LIMIT, formatPrice, paidCapes, type CapeCategory } from './capes'
@@ -15,7 +16,7 @@ const FILTERS: { id: CapeCategory; label: string }[] = [
 ]
 
 export default function StoreHome() {
-  const { openCheckout, openAccount, owns } = useOutletContext<StoreOutlet>()
+  const { openCheckout, openAccount, owns, ownsWing } = useOutletContext<StoreOutlet>()
   const { user } = useSession()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<CapeCategory>('all')
@@ -119,6 +120,13 @@ export default function StoreHome() {
         </div>
         {list.length === 0 ? <p className="empty">No cloaks match that search.</p> : null}
       </section>
+
+      <WingsSection
+        ownsWing={ownsWing}
+        linked={Boolean(user)}
+        onBuy={(wing) => openCheckout({ kind: 'wing', wing })}
+        onLink={openAccount}
+      />
     </main>
   )
 }

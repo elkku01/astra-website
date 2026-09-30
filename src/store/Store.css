@@ -1397,3 +1397,78 @@
 .store-legal span {
   flex-basis: 100%;
 }
+
+/* ---- Wings ---- */
+.wings-section {
+  max-width: 1120px;
+  margin: 56px auto 0;
+  padding: 0 16px;
+}
+
+.wings-section h2 {
+  margin: 4px 0 6px;
+}
+
+.wings-lead {
+  color: var(--muted);
+  max-width: 620px;
+  margin: 0 0 20px;
+}
+
+.wing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.wing-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+
+.wing-card.owned {
+  border-color: var(--line-strong);
+}
+
+.wing-art {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 10;
+  border-radius: 10px;
+  background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.06), transparent 70%), #0b0b0e;
+}
+
+.wing-art img {
+  width: 82%;
+  height: auto;
+  image-rendering: auto;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.6));
+}
+
+.wing-card h3 {
+  margin: 6px 0 0;
+  font-size: 16px;
+}
+
+.wing-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  flex: 1;
+}
+
+.wing-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.wing-price {
+  font-weight: 700;
+}

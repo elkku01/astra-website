@@ -8,6 +8,7 @@ export interface Env {
   STRIPE_SECRET_KEY?: string
   STRIPE_WEBHOOK_SECRET?: string
   SITE_URL?: string
+  INTERNAL_API_KEY?: string
   COLLECTION_LIMIT?: string
 }
 
@@ -46,6 +47,7 @@ export class StoreDB {
         siteUrl: env.SITE_URL || 'https://elkku01.github.io/astra-website',
         collectionLimit: Math.max(1, Number(env.COLLECTION_LIMIT || 100) || 100),
         allowedOrigins: ALLOWED_ORIGINS,
+        internalKey: env.INTERNAL_API_KEY || '',
       },
     })
     this.ready = ctx.blockConcurrencyWhile(async () => {

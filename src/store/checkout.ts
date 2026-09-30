@@ -5,7 +5,12 @@ import { storeApiUrl } from './storeApi'
  * session (Stripe Managed Payments: Stripe is the merchant of record and
  * handles VAT/sales tax). Prices are decided on the server.
  */
-export async function startCheckout(opts: { username: string; capeIds: string[]; collection: boolean }) {
+export async function startCheckout(opts: {
+  username: string
+  capeIds: string[]
+  collection: boolean
+  wingIds?: string[]
+}) {
   const response = await fetch(storeApiUrl('/api/checkout'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },

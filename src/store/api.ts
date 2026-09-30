@@ -11,6 +11,7 @@ export type StoreUser = {
   skinUrl?: string
   ownedCapeIds: string[]
   collection: boolean
+  ownedWingIds?: string[]
 }
 
 type Session = StoreUser & { token?: string }
@@ -29,6 +30,7 @@ function readSession(): Session | null {
         ? parsed.ownedCapeIds.filter((id) => CAPES.some((cape) => cape.id === id))
         : [],
       collection: Boolean(parsed.collection),
+      ownedWingIds: Array.isArray(parsed.ownedWingIds) ? parsed.ownedWingIds.filter((id) => typeof id === 'string') : [],
       token: typeof parsed.token === 'string' ? parsed.token : undefined,
     }
   } catch {
@@ -45,6 +47,7 @@ function writeSession(session: Session | null) {
       skinUrl: httpsTextureUrl(session.skinUrl),
       ownedCapeIds: session.ownedCapeIds,
       collection: session.collection,
+      ownedWingIds: session.ownedWingIds || [],
     }
     localStorage.setItem(SESSION_KEY, JSON.stringify(safe))
   }
@@ -140,19 +143,24 @@ async function lookupMinecraft(username: string): Promise<Profile> {
   }
 }
 
-function ownedFromBody(body: { ownedCapeIds?: unknown; collection?: unknown }): {
+function ownedFromBody(body: { ownedCapeIds?: unknown; collection?: unknown; ownedWingIds?: unknown }): {
   ownedCapeIds: string[]
   collection: boolean
+  ownedWingIds: string[]
 } {
   const ownedCapeIds = Array.isArray(body.ownedCapeIds)
     ? body.ownedCapeIds.filter((id): id is string => typeof id === 'string')
     : []
-  return { ownedCapeIds, collection: body.collection === true }
+  const ownedWingIds = Array.isArray(body.ownedWingIds)
+    ? body.ownedWingIds.filter((id): id is string => typeof id === 'string')
+    : []
+  return { ownedCapeIds, collection: body.collection === true, ownedWingIds }
 }
 
 async function fetchOwnedFromStore(uuid: string, username: string): Promise<{
   ownedCapeIds: string[]
   collection: boolean
+  ownedWingIds: string[]
 } | null> {
   const query = new URLSearchParams()
   if (uuid) query.set('uuid', uuid)
@@ -162,6 +170,7 @@ async function fetchOwnedFromStore(uuid: string, username: string): Promise<{
     const body = (await fetchJson(storeApiUrl(`/api/cosmetics/owned?${query}`), 6000)) as {
       ownedCapeIds?: unknown
       collection?: unknown
+      ownedWingIds?: unknown
     }
     return ownedFromBody(body)
   } catch (error) {
@@ -185,6 +194,7 @@ export async function loginWithUsername(username: string): Promise<StoreUser> {
     // The server answer replaces the cached list, so revoked cloaks disappear.
     ownedCapeIds: remote ? remote.ownedCapeIds : same?.ownedCapeIds || [],
     collection: remote ? remote.collection : Boolean(same?.collection),
+    ownedWingIds: remote ? remote.ownedWingIds : same?.ownedWingIds || [],
   })
   writeSession(user)
   return user
@@ -239,6 +249,7 @@ export async function applyRemoteOwned(username?: string): Promise<StoreUser | n
     ...session,
     ownedCapeIds: remote.ownedCapeIds,
     collection: remote.collection,
+    ownedWingIds: remote.ownedWingIds,
   })
   writeSession(next)
   return next
@@ -269,6 +280,7 @@ export async function applyCheckoutSession(sessionId?: string): Promise<Purchase
     skinUrl: same?.skinUrl,
     ownedCapeIds: remote ? remote.ownedCapeIds : [...new Set([...(same?.ownedCapeIds || []), ...status.granted])],
     collection: remote ? remote.collection : Boolean(same?.collection),
+    ownedWingIds: remote ? remote.ownedWingIds : same?.ownedWingIds || [],
   })
   writeSession(next)
   return { user: next, complete: true, granted: status.granted }

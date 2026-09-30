@@ -10,6 +10,7 @@ const BOB = { username: 'Bob', uuid: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' }
 const WHSEC = 'whsec_test_secret'
 const PASSWORD = 'correct-horse-battery'
 const PAID = paidCapes()[0]
+const INTERNAL_KEY = 'i'.repeat(48)
 
 function memoryStorage(): StoreStorage & { data: Map<string, unknown> } {
   const data = new Map<string, unknown>()
@@ -50,6 +51,7 @@ function makeStore() {
       siteUrl: 'https://example.test/astra-website',
       collectionLimit: 100,
       allowedOrigins: ['https://example.test'],
+      internalKey: INTERNAL_KEY,
     },
     resolveAccount: async (name) => {
       if (mojangDown) throw new Error('Could not check that Minecraft account right now.')
@@ -266,4 +268,51 @@ test('legacy name-only records move to a UUID only when Mojang confirms it', asy
 
 test('direct grant endpoints stay closed', async () => {
   assert.equal((await call('POST', '/api/cosmetics/grant', { username: 'Bob', ownedCapeIds: [PAID.id] })).status, 403)
+})
+
+test('wings cost $6.99 at checkout and are granted on payment; refunds take them back', async () => {
+  const res = await call('POST', '/api/checkout', { username: 'Alice', capeIds: [], wingIds: ['red'] })
+  assert.equal(res.status, 200)
+  assert.equal(lastForm!.get('line_items[0][price_data][unit_amount]'), '699')
+  assert.equal(lastForm!.get('metadata[wings]'), 'red')
+  const session = sessions.get(String(res.body.id))!
+  session.payment_status = 'paid'
+  await webhook('checkout.session.completed', session)
+  const mine = await call('GET', `/api/cosmetics/owned?uuid=${ALICE.uuid}`)
+  assert.deepEqual(mine.body.ownedWingIds, ['red'])
+  assert.equal((await call('POST', '/api/checkout', { username: 'Alice', wingIds: ['red'] })).status, 409, 'already owned')
+  await webhook('charge.dispute.created', { payment_intent: session.payment_intent })
+  assert.deepEqual((await call('GET', `/api/cosmetics/owned?uuid=${ALICE.uuid}`)).body.ownedWingIds, [])
+})
+
+test('Obsidian wings can never be bought, even with a forged session', async () => {
+  assert.equal((await call('POST', '/api/checkout', { username: 'Alice', wingIds: ['black'] })).status, 409)
+  const res = await call('POST', '/api/checkout', { username: 'Bob', wingIds: ['blue'] })
+  const session = sessions.get(String(res.body.id))!
+  session.payment_status = 'paid'
+  session.metadata = { ...session.metadata, wings: 'blue,black' } // tampered metadata
+  await webhook('checkout.session.completed', session)
+  assert.deepEqual((await call('GET', `/api/cosmetics/owned?uuid=${BOB.uuid}`)).body.ownedWingIds, ['blue'])
+})
+
+test('early access: needs the internal key, once per account, capped at the limit', async () => {
+  const claim = (uuid: string, username: string, key = INTERNAL_KEY) =>
+    call('POST', '/api/internal/early-access', { uuid, username }, { Authorization: `Bearer ${key}` })
+  assert.equal((await call('POST', '/api/internal/early-access', { uuid: ALICE.uuid, username: 'Alice' })).status, 401)
+  assert.equal((await claim(ALICE.uuid, 'Alice', 'x'.repeat(48))).status, 401)
+
+  const first = await claim(ALICE.uuid, 'Alice')
+  assert.equal(first.body.outcome, 'granted')
+  assert.ok(((await call('GET', `/api/cosmetics/owned?uuid=${ALICE.uuid}`)).body.ownedWingIds as string[]).includes('black'))
+  assert.equal((await claim(ALICE.uuid, 'Alice')).body.outcome, 'already')
+  assert.equal((await call('GET', '/api/early-access')).body.claimed, 1)
+
+  // Near the limit, simultaneous claims can never overshoot it.
+  storage.data.set('meta:earlyAccessClaimed', 998)
+  const uuids = Array.from({ length: 6 }, (_, i) => `${String(i + 1).repeat(8)}-0000-0000-0000-000000000000`)
+  const results = await Promise.all(uuids.map((uuid, i) => claim(uuid, `Player${i}x`)))
+  assert.equal(results.filter((r) => r.body.outcome === 'granted').length, 2)
+  assert.equal(results.filter((r) => r.body.outcome === 'full').length, 4)
+  const stock = await call('GET', '/api/early-access')
+  assert.deepEqual([stock.body.claimed, stock.body.remaining], [1000, 0])
 })
