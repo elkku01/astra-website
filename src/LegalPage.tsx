@@ -9,7 +9,7 @@ import './LegalPage.css'
  */
 const OPERATOR = 'Elmeri Liikonen'
 const CONTACT_EMAIL = 'support.astraclient@gmail.com'
-const LAST_UPDATED = '29 September 2026'
+const LAST_UPDATED = '30 September 2026'
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
@@ -75,8 +75,13 @@ export default function LegalPage() {
             <li>
               <strong>Minecraft account in the store.</strong> When you link an account on the website we
               use your Minecraft username and UUID (both public Mojang data) to show your skin and the
-              cloaks you own. We store which cosmetics each UUID owns and your order history so your
+              cosmetics you own. We store which cosmetics each UUID owns and your order history so your
               purchases keep working. <em>Basis: contract.</em>
+            </li>
+            <li>
+              <strong>Early-access reward.</strong> When you sign in to the launcher with Minecraft, we
+              record your UUID and username once to check whether you are one of the first 1,000 players
+              and, if so, to grant the reward. <em>Basis: contract.</em>
             </li>
             <li>
               <strong>Payments.</strong> Payments are processed by Stripe, which acts as the reseller
@@ -88,7 +93,8 @@ export default function LegalPage() {
             <li>
               <strong>Microsoft / Minecraft sign-in (launcher).</strong> Sign-in tokens are stored only
               on your computer, encrypted with your operating system&apos;s protection, and are only
-              sent to Microsoft and Mojang to start the game. <em>Basis: contract.</em>
+              sent to Microsoft and Mojang to start the game and to prove your account to Astra&apos;s
+              servers. <em>Basis: contract.</em>
             </li>
             <li>
               <strong>Optional Discord sign-in (launcher).</strong> If you connect Discord we use your
@@ -137,15 +143,16 @@ export default function LegalPage() {
           <p>
             Cloudflare (servers and data storage), GitHub (website hosting and launcher updates),
             Stripe (payments), Discord (sign-in, friends and support), Microsoft and Mojang (Minecraft
-            sign-in and game files), Modrinth and CurseForge (mod browsing and downloads) and skin
+            sign-in and game files), Modrinth and CurseForge (mod browsing, descriptions and downloads) and skin
             services (mc-heads.net, minotar.net, crafatar.com, playerdb.co, api.ashcon.app,
             api.minetools.eu) that show Minecraft skins. When your device contacts these services they
             receive your IP address under their own policies. Some are located outside the EU; transfers
             rely on the EU&ndash;US Data Privacy Framework or standard contractual clauses.
           </p>
           <p>
-            In the game, image previews in chat only load when you hover over a link, and the site
-            hosting that image sees your IP address.
+            In the launcher, images inside mod descriptions are loaded from wherever the mod author
+            hosts them. In the game, image previews in chat only load when you hover over a link. In
+            both cases the site hosting the image sees your IP address.
           </p>
 
           <h3>How long we keep data</h3>
@@ -296,10 +303,15 @@ export default function LegalPage() {
             from your receipt. Your statutory rights are not affected.
           </p>
 
-          <h3>Limited items</h3>
+          <h3>Limited items and rewards</h3>
           <p>
             The launch collection is limited to 100 copies. Once sold out it cannot be bought again.
-            Individual cloaks stay available unless we announce otherwise.
+            Individual cloaks and wings stay available unless we announce otherwise.
+          </p>
+          <p>
+            Obsidian Wings are a free early-access reward for the first 1,000 Minecraft accounts that
+            sign in to the Astra launcher. They cannot be bought, and once all 1,000 are claimed they are
+            no longer given out.
           </p>
         </Section>
       </main>
