@@ -47,7 +47,7 @@ export default function StoreLayout() {
   }, [searchParams, setSearchParams])
 
   useEffect(() => {
-    document.title = 'Astra Cloaks'
+    document.title = 'Astra Cosmetics'
     return () => {
       document.title = 'Astra — Launcher + Client'
     }
@@ -114,8 +114,8 @@ export default function StoreLayout() {
           <NavLink to="/store" end viewTransition>
             Store
           </NavLink>
-          <NavLink to="/store/my-capes" viewTransition>
-            My Cloaks
+          <NavLink to="/store/my-cosmetics" viewTransition>
+            My Cosmetics
           </NavLink>
           <NavLink to="/status" viewTransition>
             Status

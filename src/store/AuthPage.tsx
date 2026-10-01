@@ -32,7 +32,7 @@ export default function AuthPage() {
   return (
     <div className="store-page auth-page">
       <main className="store-main">
-        <p className="kicker">Astra Cloaks</p>
+        <p className="kicker">Astra Cosmetics</p>
         <h1 className="page-title">{user ? 'Account linked' : status}</h1>
         {linkError ? <p className="error">{linkError}</p> : null}
         <p className="hero-lead">

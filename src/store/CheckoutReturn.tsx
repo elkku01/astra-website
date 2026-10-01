@@ -73,13 +73,13 @@ export default function CheckoutReturn() {
         ? {
             kicker: 'Checkout',
             title: 'Could not confirm',
-            lead: 'Refresh this page in a moment. If you paid, the cloaks will still land on your linked account.',
+            lead: 'Refresh this page in a moment. If you paid, your cosmetics will still land on your linked account.',
           }
         : phase === 'pending'
           ? {
               kicker: 'Checkout',
               title: 'Almost there',
-              lead: 'Payment can take a few seconds to clear. Refresh this page if your cloaks are not listed yet.',
+              lead: 'Payment can take a few seconds to clear. Refresh this page if your cosmetics are not listed yet.',
             }
           : phase === 'checking'
             ? {
@@ -91,8 +91,8 @@ export default function CheckoutReturn() {
                 kicker: 'Purchase complete',
                 title: 'Unlocked',
                 lead: user
-                  ? `${user.ownedCapeIds.length} cloaks are now on ${user.username}.`
-                  : 'Your cloaks are tied to the Minecraft account you paid with.',
+                  ? `${user.ownedCapeIds.length + (user.ownedWingIds?.length || 0)} cosmetics are now on ${user.username}.`
+                  : 'Your cosmetics are tied to the Minecraft account you paid with.',
               }
 
   return (
@@ -113,8 +113,8 @@ export default function CheckoutReturn() {
         ) : null}
         <div className="checkout-actions">
           {phase === 'success' || phase === 'pending' ? (
-            <Link className="btn-primary btn-xl" to="/store/my-capes" viewTransition>
-              View your cloaks
+            <Link className="btn-primary btn-xl" to="/store/my-cosmetics" viewTransition>
+              View your cosmetics
             </Link>
           ) : null}
           <Link className={phase === 'success' ? 'btn-ghost' : 'btn-primary'} to="/store" viewTransition>

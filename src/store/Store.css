@@ -1472,3 +1472,21 @@
 .wing-price {
   font-weight: 700;
 }
+
+.wing-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.my-wings {
+  margin-bottom: 18px;
+}
+
+.detail-points {
+  margin: 18px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}

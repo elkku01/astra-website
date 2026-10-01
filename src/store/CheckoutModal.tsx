@@ -40,7 +40,7 @@ export default function CheckoutModal({
         <p className="modal-price">{formatPrice(price)}</p>
         <p className="modal-note">
           Secure checkout by Stripe, our reseller, which also handles VAT and sales tax. Card
-          details never touch this site. Cloaks unlock on your linked Minecraft account.
+          details never touch this site. Cosmetics unlock on your linked Minecraft account.
         </p>
         <label className="modal-consent">
           <input type="checkbox" checked={agreed} onChange={(event) => setAgreed(event.target.checked)} />

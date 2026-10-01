@@ -1,3 +1,4 @@
+import { knownWingIds } from './wings'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { avatarUrl, ownsCape } from './api'
@@ -52,7 +53,9 @@ export default function AccountMenu({ open, onOpenChange }: Props) {
     }
   }
 
-  const owned = user ? CAPES.filter((cape) => ownsCape(user, cape.id)).length : 0
+  const owned = user
+    ? CAPES.filter((cape) => ownsCape(user, cape.id)).length + knownWingIds(user.ownedWingIds || []).length
+    : 0
   const showForm = !user || adding
 
   const pop = open
@@ -78,7 +81,7 @@ export default function AccountMenu({ open, onOpenChange }: Props) {
                   <p>
                     <em className="linked">Linked</em>
                     <span>
-                      {owned} cloak{owned === 1 ? '' : 's'}
+                      {owned} cosmetic{owned === 1 ? '' : 's'}
                     </span>
                   </p>
                 </div>
@@ -86,7 +89,7 @@ export default function AccountMenu({ open, onOpenChange }: Props) {
             ) : (
               <header className="account-pop-head text">
                 <strong>Link account</strong>
-                <p>Use the Java Edition username that should own cloaks.</p>
+                <p>Use the Java Edition username that should own your cosmetics.</p>
               </header>
             )}
 

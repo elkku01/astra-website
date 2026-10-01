@@ -21,7 +21,7 @@ export default function CapeDetail() {
   return (
     <main className="store-main cape-detail">
       <Link className="back-link" to="/store" viewTransition>
-        ← All cloaks
+        ← All cosmetics
       </Link>
       <div className="detail-grid">
         <div className="preview-stage">

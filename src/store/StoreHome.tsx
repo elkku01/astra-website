@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import WingsSection from './WingsSection'
+import WingsSection, { wingMatches } from './WingsSection'
+import { purchasableWings } from './wings'
 import { Link, useOutletContext } from 'react-router-dom'
 import CapeCard from './CapeCard'
 import { CAPES, COLLECTION_LAUNCH_PRICE, COLLECTION_LIMIT, formatPrice, paidCapes, type CapeCategory } from './capes'
@@ -31,6 +32,8 @@ export default function StoreHome() {
       return cape.name.toLowerCase().includes(q) || cape.blurb.toLowerCase().includes(q)
     })
   }, [query, filter])
+  // Wings have no cloak categories, so they show under All (and in search).
+  const wingHits = filter === 'all' && purchasableWings().some((wing) => wingMatches(wing, query))
 
   return (
     <main className="store-main">
@@ -39,10 +42,10 @@ export default function StoreHome() {
         <p className="kicker">Official companion store</p>
         <h1>
           <span className="hero-word">ASTRA</span>
-          <span className="hero-sub">Cloaks</span>
+          <span className="hero-sub">Cosmetics</span>
         </h1>
         <p className="hero-lead">
-          The same cloaks as Astra Client. Preview them on your skin, then check out to unlock.
+          The same cloaks and wings as Astra Client. Preview them on your skin, then check out to unlock.
         </p>
         <div className="launch-offer">
           <strong>Launch collection · {COLLECTION_LIMIT} only</strong>
@@ -53,7 +56,7 @@ export default function StoreHome() {
         </div>
         {!user ? (
           <p className="link-hint">
-            Link your Minecraft username to preview cloaks on your skin before you buy.
+            Link your Minecraft username to preview cosmetics on your skin before you buy.
           </p>
         ) : null}
       </section>
@@ -83,7 +86,7 @@ export default function StoreHome() {
 
       <section className="catalog">
         <p className="catalog-support">
-          Cloaks aren't just drip — every buy backs Astra Client. We put some of that money into making
+          Cosmetics aren't just drip — every buy backs Astra Client. We put some of that money into making
           the client faster, cleaner, and harder to put down.
         </p>
         <div className="catalog-bar">
@@ -103,8 +106,8 @@ export default function StoreHome() {
             className="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search cloaks"
-            aria-label="Search cloaks"
+            placeholder="Search cosmetics"
+            aria-label="Search cosmetics"
           />
         </div>
         <div className="cape-grid">
@@ -118,15 +121,18 @@ export default function StoreHome() {
             />
           ))}
         </div>
-        {list.length === 0 ? <p className="empty">No cloaks match that search.</p> : null}
+        {list.length === 0 && !wingHits ? <p className="empty">No cosmetics match that search.</p> : null}
       </section>
 
+      {filter === 'all' ? (
       <WingsSection
         ownsWing={ownsWing}
         linked={Boolean(user)}
+        query={query}
         onBuy={(wing) => openCheckout({ kind: 'wing', wing })}
         onLink={openAccount}
       />
+      ) : null}
     </main>
   )
 }

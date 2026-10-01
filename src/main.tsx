@@ -10,6 +10,7 @@ import { SessionProvider } from './store/session.tsx'
 import StoreLayout from './store/StoreLayout.tsx'
 import StoreHome from './store/StoreHome.tsx'
 import CapeDetail from './store/CapeDetail.tsx'
+import WingDetail from './store/WingDetail'
 import CollectionPage from './store/CollectionPage.tsx'
 import MyCapesPage from './store/MyCapesPage.tsx'
 import AuthPage from './store/AuthPage.tsx'
@@ -65,11 +66,13 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/store" element={<StoreLayout />}>
             <Route index element={<StoreHome />} />
             <Route path="collection" element={<CollectionPage />} />
-            <Route path="my-capes" element={<MyCapesPage />} />
+            <Route path="my-cosmetics" element={<MyCapesPage />} />
+            <Route path="my-capes" element={<Navigate to="/store/my-cosmetics" replace />} />
             <Route path="account" element={<Navigate to="/store" replace />} />
             <Route path="checkout" element={<CheckoutReturn />} />
             <Route path="admin" element={<AdminPage />} />
             <Route path="cape/:id" element={<CapeDetail />} />
+            <Route path="wings/:id" element={<WingDetail />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
