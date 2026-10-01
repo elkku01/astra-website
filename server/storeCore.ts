@@ -158,6 +158,13 @@ function randomToken() {
   return [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
+/** The claim's place in line (1 = first), or null for unknown records. */
+function earlyClaimNumber(value: unknown): number | null {
+  if (!value || typeof value !== 'object') return null
+  const number = Number((value as { number?: unknown }).number)
+  return Number.isInteger(number) && number > 0 ? number : null
+}
+
 export class CosmeticsStore {
   private storage: StoreStorage
   private config: StoreConfig
@@ -459,11 +466,15 @@ export class CosmeticsStore {
     const hex = uuidKey(uuid)
     if (!hex || !USERNAME_RE.test(username)) throw new HttpError(400, 'Invalid player.')
     let outcome: 'granted' | 'already' | 'full' = 'granted'
+    let number: number | null = null
     await this.grant({ uuid: dashed(hex), username }, [], false, {
       wings: [EARLY_ACCESS_WING],
       before: async () => {
-        if (await this.storage.get(`early:${hex}`)) {
+        await this.numberLegacyEarlyClaims()
+        const existing = await this.storage.get<unknown>(`early:${hex}`)
+        if (existing) {
           outcome = 'already'
+          number = earlyClaimNumber(existing)
           throw new DuplicateOrder()
         }
         const claimed = Number(await this.storage.get<number>('meta:earlyAccessClaimed')) || 0
@@ -471,13 +482,39 @@ export class CosmeticsStore {
           outcome = 'full'
           throw new DuplicateOrder()
         }
-        await this.storage.put(`early:${hex}`, Date.now())
-        await this.storage.put('meta:earlyAccessClaimed', claimed + 1)
+        number = claimed + 1
+        await this.storage.put(`early:${hex}`, { at: Date.now(), number })
+        await this.storage.put('meta:earlyAccessClaimed', number)
       },
     }).catch((error: unknown) => {
       if (!(error instanceof DuplicateOrder)) throw error
     })
-    return { outcome, ...(await this.earlyAccessStock()) }
+    return { outcome, number, ...(await this.earlyAccessStock()) }
+  }
+
+  /**
+   * Claims made before claim numbers were stored only kept a timestamp; number
+   * those once, in claim order. Must run inside the mutex.
+   */
+  private async numberLegacyEarlyClaims() {
+    if (await this.storage.get('meta:earlyAccessNumbered')) return
+    const players = (await this.storage.get<string[]>('index:players')) || []
+    const legacy: { hex: string; at: number }[] = []
+    let highest = 0
+    for (const hex of players) {
+      const value = await this.storage.get<unknown>(`early:${hex}`)
+      if (typeof value === 'number') legacy.push({ hex, at: value })
+      else highest = Math.max(highest, earlyClaimNumber(value) || 0)
+    }
+    legacy.sort((a, b) => a.at - b.at)
+    let next = highest
+    for (const claim of legacy) {
+      next += 1
+      await this.storage.put(`early:${claim.hex}`, { at: claim.at, number: next })
+    }
+    const claimed = Number(await this.storage.get<number>('meta:earlyAccessClaimed')) || 0
+    if (next > claimed) await this.storage.put('meta:earlyAccessClaimed', next)
+    await this.storage.put('meta:earlyAccessNumbered', true)
   }
 
   async earlyAccessStock() {

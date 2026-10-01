@@ -303,8 +303,11 @@ test('early access: needs the internal key, once per account, capped at the limi
 
   const first = await claim(ALICE.uuid, 'Alice')
   assert.equal(first.body.outcome, 'granted')
+  assert.equal(first.body.number, 1)
   assert.ok(((await call('GET', `/api/cosmetics/owned?uuid=${ALICE.uuid}`)).body.ownedWingIds as string[]).includes('black'))
-  assert.equal((await claim(ALICE.uuid, 'Alice')).body.outcome, 'already')
+  const again = await claim(ALICE.uuid, 'Alice')
+  assert.equal(again.body.outcome, 'already')
+  assert.equal(again.body.number, 1, 'a repeat sign-in still knows its place in line')
   assert.equal((await call('GET', '/api/early-access')).body.claimed, 1)
 
   // Near the limit, simultaneous claims can never overshoot it.
@@ -315,4 +318,22 @@ test('early access: needs the internal key, once per account, capped at the limi
   assert.equal(results.filter((r) => r.body.outcome === 'full').length, 4)
   const stock = await call('GET', '/api/early-access')
   assert.deepEqual([stock.body.claimed, stock.body.remaining], [1000, 0])
+})
+
+test('early access: claims from before numbering get numbers in claim order', async () => {
+  const claim = (uuid: string, username: string) =>
+    call('POST', '/api/internal/early-access', { uuid, username }, { Authorization: `Bearer ${INTERNAL_KEY}` })
+  const late = '22222222000000000000000000000000'
+  const early = '11111111000000000000000000000000'
+  storage.data.set('index:players', [late, early])
+  storage.data.set(`early:${late}`, 2_000)
+  storage.data.set(`early:${early}`, 1_000)
+  storage.data.set('meta:earlyAccessClaimed', 2)
+
+  const lateAgain = await claim('22222222-0000-0000-0000-000000000000', 'Latecomer')
+  assert.deepEqual([lateAgain.body.outcome, lateAgain.body.number], ['already', 2])
+  const fresh = await claim(ALICE.uuid, 'Alice')
+  assert.deepEqual([fresh.body.outcome, fresh.body.number], ['granted', 3])
+  const earlyAgain = await claim('11111111-0000-0000-0000-000000000000', 'Earlybird')
+  assert.deepEqual([earlyAgain.body.outcome, earlyAgain.body.number], ['already', 1])
 })
