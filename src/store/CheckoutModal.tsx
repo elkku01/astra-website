@@ -49,8 +49,9 @@ export default function CheckoutModal({
           <input type="checkbox" checked={agreed} onChange={(event) => setAgreed(event.target.checked)} />
           <span>
             I agree to the <Link to="/legal#terms" target="_blank">Terms</Link> and want the cosmetic
-            delivered immediately. I understand I lose my 14-day right of withdrawal once it is
-            delivered (<Link to="/legal#purchases" target="_blank">details</Link>).
+            delivered immediately. I understand that{' '}
+            <Link to="/legal#purchases" target="_blank">all purchases are final</Link> and that I lose my
+            14-day right of withdrawal once it is delivered.
           </span>
         </label>
         {error ? (

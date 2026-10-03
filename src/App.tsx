@@ -323,7 +323,11 @@ function App() {
           <span aria-hidden="true"> · </span>
           <Link to="/legal#terms">Terms</Link>
           <span aria-hidden="true"> · </span>
-          <Link to="/legal#purchases">Refunds</Link>
+          <Link to="/legal#purchases">Purchases</Link>
+          <span aria-hidden="true"> · </span>
+          <a href="https://discord.gg/byKpped2K" rel="noreferrer" target="_blank">
+            Support (Discord)
+          </a>
           <span aria-hidden="true"> · </span>
           © 2026 Astra Client. Not an official Minecraft product. Not approved by or
           associated with Mojang or Microsoft. Not affiliated with Lunar or Dawn.

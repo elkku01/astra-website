@@ -2,14 +2,10 @@ import { useEffect, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import './LegalPage.css'
 
-/*
- * FILL THESE IN before publishing. The operator is the person or company
- * legally responsible for Astra (the "controller" under GDPR). Get the final
- * text reviewed by a lawyer if you can; this is a solid template, not legal advice.
- */
-const OPERATOR = 'Elmeri Liikonen'
-const CONTACT_EMAIL = 'support.astraclient@gmail.com'
-const LAST_UPDATED = '30 September 2026'
+/* Who runs Astra and how to reach us. Support is on the Astra Discord. */
+const OPERATOR = 'the Astra Client team'
+const SUPPORT_URL = 'https://discord.gg/byKpped2K'
+const LAST_UPDATED = '3 October 2026'
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
@@ -49,7 +45,7 @@ export default function LegalPage() {
         <nav aria-label="Legal documents">
           <a href="#privacy">Privacy</a>
           <a href="#terms">Terms</a>
-          <a href="#purchases">Purchases &amp; refunds</a>
+          <a href="#purchases">Purchases</a>
         </nav>
       </header>
 
@@ -66,8 +62,9 @@ export default function LegalPage() {
         <Section id="privacy" title="Privacy Policy">
           <p>
             This policy explains what Astra (the Astra Client launcher, the Astra Client mod, this
-            website and the Astra store) collects, why, and what you can do about it. The controller
-            is {OPERATOR}, Finland. Contact: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+            website and the Astra store) collects, why, and what you can do about it. Astra is run by
+            {OPERATOR} in Finland. For questions, use our{' '}
+            <a href={SUPPORT_URL} rel="noreferrer" target="_blank">Discord server</a>.
           </p>
 
           <h3>What we collect and why</h3>
@@ -168,8 +165,8 @@ export default function LegalPage() {
           <p>
             You can ask for a copy of your data, correction, deletion, restriction or portability, and
             you can object to processing based on legitimate interest or withdraw consent at any time.
-            Email <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> with your Minecraft name and,
-            for Discord features, your Discord username. Deleting owned cosmetics removes them from your
+            Open a ticket on our <a href={SUPPORT_URL} rel="noreferrer" target="_blank">Discord server</a>{' '}
+            with your Minecraft name and, for Discord features, your Discord username. Deleting owned cosmetics removes them from your
             account permanently. You can also complain to the Finnish Data Protection Ombudsman
             (<a href="https://tietosuoja.fi/en" rel="noreferrer" target="_blank">tietosuoja.fi</a>) or your
             local authority.
@@ -260,7 +257,8 @@ export default function LegalPage() {
           <p>
             Astra, its code, artwork and cosmetics belong to {OPERATOR} or its licensors. Other names and
             trademarks belong to their owners. If you believe something in Astra infringes your rights,
-            contact <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> and we will review it promptly.
+            tell us on our <a href={SUPPORT_URL} rel="noreferrer" target="_blank">Discord server</a> and we
+            will review it promptly.
           </p>
 
           <h3>9. Changes, law and contact</h3>
@@ -268,39 +266,38 @@ export default function LegalPage() {
             We may update these terms; we will change the date above and, for significant changes, tell
             you in the launcher or on this site. Continued use means you accept the updated terms. These
             terms are governed by the laws of Finland. If you are a consumer, you keep the protection of
-            the mandatory laws of your country of residence and may bring claims there. Questions:{' '}
-            <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+            the mandatory laws of your country of residence and may bring claims there. Questions: ask on
+            our <a href={SUPPORT_URL} rel="noreferrer" target="_blank">Discord server</a>.
           </p>
         </Section>
 
         {/* ------------------------------------------------------------------ PURCHASES */}
-        <Section id="purchases" title="Purchases & Refunds">
+        <Section id="purchases" title="Purchases">
           <h3>Who sells to you</h3>
           <p>
             Store orders are processed by Stripe as the reseller (merchant of record). Stripe handles
             payment, invoices and VAT or sales tax, and its{' '}
             <a href="https://stripe.com/legal/consumer" rel="noreferrer" target="_blank">consumer terms</a> apply
-            to the payment. Prices shown include tax where tax applies. Your cosmetics are delivered by
-            us to the Minecraft account you chose, usually within seconds of payment.
+            to the payment. Prices shown include tax where tax applies. Your cosmetics are delivered to
+            the Minecraft account you chose, usually within seconds of payment.
           </p>
 
-          <h3>Right of withdrawal (EU/EEA and UK)</h3>
+          <h3>All purchases are final</h3>
           <p>
-            Cosmetics are digital content supplied immediately. At checkout you ask us to deliver
-            immediately and acknowledge that you therefore lose your 14-day right of withdrawal once the
-            cosmetic is delivered. If you do not want to give up that right, do not complete the purchase.
+            Cosmetics are digital content delivered immediately. All purchases are final: we do not
+            offer refunds, exchanges or cancellations, including for change of mind, for buying the wrong
+            item or for a ban from a server. Check the item and the Minecraft name before you pay.
           </p>
-
-          <h3>Refunds</h3>
-          <ul>
-            <li>If a paid cosmetic is not delivered, or does not work as described and we cannot fix it, you get a full refund.</li>
-            <li>If you were charged twice or paid for the wrong account by mistake, contact us within 14 days and we will fix or refund it.</li>
-            <li>Other refunds are at our discretion. Refunded or charged-back purchases are removed from the account.</li>
-          </ul>
           <p>
-            To ask for help, email <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> with your
-            Minecraft name and the order email or receipt. Stripe can also help with payment questions
-            from your receipt. Your statutory rights are not affected.
+            In the EU, EEA and UK, at checkout you ask us to deliver immediately and acknowledge that you
+            therefore lose your 14-day right of withdrawal once the cosmetic is delivered. If you do not
+            want to give that up, do not complete the purchase.
+          </p>
+          <p>
+            If something you paid for did not arrive on your account, ask on our{' '}
+            <a href={SUPPORT_URL} rel="noreferrer" target="_blank">Discord server</a> with your Minecraft
+            name and your Stripe receipt and we will deliver it. A purchase that is charged back is removed
+            from the account. Nothing here limits rights you have under mandatory consumer law.
           </p>
 
           <h3>Limited items and rewards</h3>

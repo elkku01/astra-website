@@ -174,7 +174,10 @@ export default function StoreLayout() {
       <footer className="store-legal">
         <Link to="/legal#privacy">Privacy</Link>
         <Link to="/legal#terms">Terms</Link>
-        <Link to="/legal#purchases">Purchases &amp; refunds</Link>
+        <Link to="/legal#purchases">Purchases</Link>
+        <a href="https://discord.gg/byKpped2K" rel="noreferrer" target="_blank">
+          Support (Discord)
+        </a>
         <span>Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</span>
       </footer>
       <AdminDock />
