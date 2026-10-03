@@ -264,7 +264,9 @@ export class CosmeticsStore {
       await this.storage.put(`player:${hex}`, record)
       await this.storage.put(`name:${nameKey(account.username)}`, hex)
       await this.indexPlayer(hex)
-      if (options.paid && record.collection) await this.countCollectionSale(hex)
+      // Only this purchase counts: wings or a single cloak never use up a collection
+      // spot, even for a player who already owns every cloak.
+      if (options.paid && collection) await this.countCollectionSale(hex)
       if (options.extra) await options.extra()
       return this.withFree(record)
     })
@@ -305,6 +307,21 @@ export class CosmeticsStore {
     const cap = this.config.collectionLimit > 0 ? this.config.collectionLimit : 100
     const sold = Math.min(Number(await this.storage.get<number>('meta:collectionSold')) || 0, cap)
     return { limit: cap, sold, remaining: Math.max(0, cap - sold) }
+  }
+
+  /** Takes a player out of the collection count (for test purchases or mistakes). Admin only. */
+  async adminUncountSale(username: string) {
+    const account = await this.verifiedAccount(username)
+    const hex = uuidKey(account.uuid)
+    if (!hex) throw new HttpError(400, INVALID_MINECRAFT_ACCOUNT)
+    return this.mutex.run(async () => {
+      if (await this.storage.get(`sale:${hex}`)) {
+        await this.storage.delete(`sale:${hex}`)
+        const sold = Number(await this.storage.get<number>('meta:collectionSold')) || 0
+        await this.storage.put('meta:collectionSold', Math.max(0, sold - 1))
+      }
+      return this.collectionStock()
+    })
   }
 
   async listPlayers(): Promise<OwnedRecord[]> {
@@ -690,6 +707,9 @@ export class CosmeticsStore {
         }
         if (path === '/api/admin/revoke' && method === 'POST') {
           return send(200, await this.adminRevoke(username, capeIds, wingIds))
+        }
+        if (path === '/api/admin/uncount-sale' && method === 'POST') {
+          return send(200, await this.adminUncountSale(username))
         }
         if (path === '/api/admin/badge' && method === 'POST') {
           return send(200, await this.adminSetBadge(username, String(body.badge || '')))

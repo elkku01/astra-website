@@ -1557,3 +1557,8 @@
 .admin-wing-thumb {
   object-fit: contain;
 }
+
+.admin-uncount {
+  margin-left: auto;
+  font-size: 12px;
+}

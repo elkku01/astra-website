@@ -371,3 +371,25 @@ test('admin can give and remove any wings, including the reward wings', async ()
   assert.deepEqual(removed.body.ownedWingIds, ['black'])
   assert.equal((await call('POST', '/api/admin/revoke', { username: 'Bob', capeIds: [], wingIds: [] }, auth)).status, 400)
 })
+
+test('buying wings never uses a launch-collection spot, even for someone who owns every cloak', async () => {
+  await store.adminGrant('Bob', [], true)
+  const before = (await call('GET', '/api/collection-stock')).body.sold
+  const session = await call('POST', '/api/checkout', { username: 'Bob', capeIds: [], collection: false, wingIds: ['red'] })
+  assert.equal(session.status, 200)
+  await store.fulfill({ ...sessions.get(session.body.id as string)!, payment_status: 'paid' })
+  assert.equal((await call('GET', '/api/collection-stock')).body.sold, before)
+})
+
+test('admin can take a player out of the collection count', async () => {
+  await store.fulfill(await buy('Alice', [], true))
+  assert.equal((await call('GET', '/api/collection-stock')).body.sold, 1)
+  const login = await call('POST', '/api/admin/login', { password: PASSWORD })
+  const auth = { Authorization: `Bearer ${login.body.token}` }
+  assert.equal((await call('POST', '/api/admin/uncount-sale', { username: 'Alice' })).status, 401)
+  const result = await call('POST', '/api/admin/uncount-sale', { username: 'Alice' }, auth)
+  assert.equal(result.status, 200)
+  assert.equal(result.body.sold, 0)
+  // Doing it again changes nothing.
+  assert.equal((await call('POST', '/api/admin/uncount-sale', { username: 'Alice' }, auth)).body.sold, 0)
+})

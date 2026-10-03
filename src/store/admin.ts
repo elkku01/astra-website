@@ -113,3 +113,11 @@ export async function adminSetBadge(username: string, badge: string) {
     body: JSON.stringify({ username, badge }),
   })
 }
+
+/** Takes a player out of the launch-collection count (test purchases or mistakes). */
+export async function adminUncountSale(username: string) {
+  return adminJson<{ limit: number; sold: number; remaining: number }>('/api/admin/uncount-sale', {
+    method: 'POST',
+    body: JSON.stringify({ username }),
+  })
+}

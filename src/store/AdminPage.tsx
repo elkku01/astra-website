@@ -7,6 +7,7 @@ import {
   adminRevoke,
   adminRevokeWings,
   adminSetBadge,
+  adminUncountSale,
   fetchAdminPlayers,
   isAdminAuthed,
   type AdminPlayer,
@@ -167,6 +168,22 @@ export default function AdminPage() {
     }
   }
 
+  async function uncountSale() {
+    if (!active) return
+    setBusy('uncount')
+    setError('')
+    setNotice('')
+    try {
+      const account = await resolveMinecraftAccount(active.username)
+      const stock = await adminUncountSale(account.username)
+      setNotice(`${account.username} no longer counts toward the launch collection. ${stock.remaining} of ${stock.limit} left.`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not change the count')
+    } finally {
+      setBusy(null)
+    }
+  }
+
   async function setBadge(badge: string) {
     if (!active) return
     setBusy(`badge:${badge}`)
@@ -317,6 +334,15 @@ export default function AdminPage() {
                       : `${owned.length} cloak${owned.length === 1 ? '' : 's'}`}
                   </p>
                 </div>
+                <button
+                  type="button"
+                  className="btn-ghost admin-uncount"
+                  disabled={busy !== null}
+                  title="Use this for test purchases: frees their spot in the 100-player launch collection. What they own stays."
+                  onClick={() => void uncountSale()}
+                >
+                  {busy === 'uncount' ? 'Updating…' : 'Free their collection spot'}
+                </button>
               </header>
 
               <h3>Nametag icon</h3>
