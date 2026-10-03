@@ -14,6 +14,7 @@
  *   meta:collectionSold   number
  *   session:<token>       admin session expiry (ms)
  */
+import { knownBadge } from '../src/store/badgeIds.ts'
 import { isFullCollection, knownCapeIds } from '../src/store/fulfillment.ts'
 import { EARLY_ACCESS_LIMIT, EARLY_ACCESS_WING, WINGS, knownWingIds } from '../src/store/wings.ts'
 import { CAPES, COLLECTION_LAUNCH_PRICE, freeCapeIds, paidCapes } from '../src/store/capes.ts'
@@ -55,6 +56,8 @@ export type OwnedRecord = {
   ownedCapeIds: string[]
   collection: boolean
   ownedWingIds?: string[]
+  /** Nametag icon role given by an admin ('creator' | 'owner' | 'booster' | 'admin'); none = default white. */
+  badge?: string
 }
 
 type Order = {
@@ -183,8 +186,10 @@ export class CosmeticsStore {
 
   private withFree(record: OwnedRecord): OwnedRecord {
     const owned = record.collection ? CAPES.map((cape) => cape.id) : record.ownedCapeIds
+    const badge = knownBadge(record.badge)
     return {
       ...record,
+      badge,
       ownedCapeIds: [...new Set([...owned, ...freeCapeIds()])],
       ownedWingIds: knownWingIds(record.ownedWingIds || []),
     }
@@ -254,6 +259,7 @@ export class CosmeticsStore {
         ownedCapeIds: owned,
         collection: Boolean(collection || previous?.collection || isFullCollection(owned)),
         ownedWingIds: knownWingIds([...(previous?.ownedWingIds || []), ...(options.wings || [])]),
+        ...(previous?.badge ? { badge: previous.badge } : {}),
       }
       await this.storage.put(`player:${hex}`, record)
       await this.storage.put(`name:${nameKey(account.username)}`, hex)
@@ -278,6 +284,7 @@ export class CosmeticsStore {
         ownedCapeIds: start.filter((id) => !remove.has(id)),
         collection: false,
         ownedWingIds: (previous?.ownedWingIds || []).filter((id) => !removeWings.has(id)),
+        ...(previous?.badge ? { badge: previous.badge } : {}),
       }
       await this.storage.put(`player:${hex}`, record)
       await this.storage.put(`name:${nameKey(account.username)}`, hex)
@@ -574,6 +581,30 @@ export class CosmeticsStore {
     return this.grant(account, ids, collection || isFullCollection(ids))
   }
 
+  /** Sets (or with '' clears) a player's nametag icon role. Admin only; badges are never sold. */
+  async adminSetBadge(username: string, badge: string) {
+    const wanted = knownBadge(badge)
+    if (badge && !wanted) throw new HttpError(400, 'Unknown icon.')
+    const account = await this.verifiedAccount(username)
+    const hex = uuidKey(account.uuid)
+    if (!hex) throw new HttpError(400, INVALID_MINECRAFT_ACCOUNT)
+    return this.mutex.run(async () => {
+      const previous = await this.player(hex)
+      const record: OwnedRecord = {
+        uuid: dashed(hex),
+        username: account.username,
+        ownedCapeIds: previous?.ownedCapeIds || [],
+        collection: Boolean(previous?.collection),
+        ownedWingIds: previous?.ownedWingIds || [],
+      }
+      if (wanted) record.badge = wanted
+      await this.storage.put(`player:${hex}`, record)
+      await this.storage.put(`name:${nameKey(account.username)}`, hex)
+      await this.indexPlayer(hex)
+      return this.withFree(record)
+    })
+  }
+
   async adminRevoke(username: string, capeIds: string[]) {
     const ids = knownCapeIds(capeIds)
     if (ids.length === 0) throw new HttpError(400, 'Select at least one cloak to remove.')
@@ -657,6 +688,9 @@ export class CosmeticsStore {
         }
         if (path === '/api/admin/revoke' && method === 'POST') {
           return send(200, await this.adminRevoke(username, capeIds))
+        }
+        if (path === '/api/admin/badge' && method === 'POST') {
+          return send(200, await this.adminSetBadge(username, String(body.badge || '')))
         }
       }
     } catch (error) {

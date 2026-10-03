@@ -7,6 +7,8 @@ export type AdminPlayer = {
   username: string
   ownedCapeIds: string[]
   collection: boolean
+  /** Nametag icon role ('' = default white). */
+  badge?: string
 }
 
 function setAuthedFlag(value: boolean) {
@@ -90,5 +92,13 @@ export async function adminRevoke(username: string, capeIds: string[], ownedCape
   return adminJson<AdminPlayer>('/api/admin/revoke', {
     method: 'POST',
     body: JSON.stringify({ username, capeIds, ownedCapeIds }),
+  })
+}
+
+/** Gives a player a nametag icon role, or '' for the default white icon. */
+export async function adminSetBadge(username: string, badge: string) {
+  return adminJson<AdminPlayer>('/api/admin/badge', {
+    method: 'POST',
+    body: JSON.stringify({ username, badge }),
   })
 }

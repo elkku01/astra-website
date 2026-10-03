@@ -4,11 +4,13 @@ import {
   adminGrant,
   adminLogout,
   adminRevoke,
+  adminSetBadge,
   fetchAdminPlayers,
   isAdminAuthed,
   type AdminPlayer,
 } from './admin'
 import { avatarUrl } from './api'
+import { BADGES, DEFAULT_BADGE, getBadge } from './badges'
 import { INVALID_MINECRAFT_ACCOUNT, resolveMinecraftAccount } from './minecraftAccount'
 import { capeThumbUrl } from './capeArt'
 import { CAPES, getCape, paidCapes } from './capes'
@@ -121,6 +123,27 @@ export default function AdminPage() {
     }
   }
 
+  async function setBadge(badge: string) {
+    if (!active) return
+    setBusy(`badge:${badge}`)
+    setError('')
+    setNotice('')
+    try {
+      const account = await resolveMinecraftAccount(active.username)
+      const record = await adminSetBadge(account.username, badge)
+      setNotice(
+        badge
+          ? `${record.username} now has the ${getBadge(badge).name} icon. It shows in game within a few minutes.`
+          : `${record.username} is back to the default icon.`,
+      )
+      await loadPlayers()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not change the icon')
+    } finally {
+      setBusy(null)
+    }
+  }
+
   async function remove(id: string) {
     if (!active) return
     setBusy(id)
@@ -208,7 +231,19 @@ export default function AdminPage() {
                   >
                     <img src={avatarUrl(player.username, 48, player.uuid)} alt="" width={36} height={36} />
                     <span>
-                      <strong>{player.username || player.uuid}</strong>
+                      <strong>
+                        {player.badge ? (
+                          <img
+                            className="admin-badge-mini"
+                            src={getBadge(player.badge).icon}
+                            alt=""
+                            title={getBadge(player.badge).name}
+                            width={14}
+                            height={14}
+                          />
+                        ) : null}
+                        {player.username || player.uuid}
+                      </strong>
                       <em>
                         {player.collection ? 'Full collection' : `${ownedIds(player).length} cloaks`}
                       </em>
@@ -239,6 +274,33 @@ export default function AdminPage() {
                 </div>
               </header>
 
+              <h3>Nametag icon</h3>
+              <p className="admin-badge-note">
+                Shown next to their name in game. Everyone has the white one; the others can only be given here.
+              </p>
+              <div className="admin-badges" role="radiogroup" aria-label="Nametag icon">
+                {[DEFAULT_BADGE, ...BADGES].map((badge) => {
+                  const on = (active.badge || '') === badge.id
+                  return (
+                    <button
+                      key={badge.id || 'default'}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      className={`admin-badge ${on ? 'on' : ''}`}
+                      disabled={busy !== null || on}
+                      onClick={() => void setBadge(badge.id)}
+                    >
+                      <span className="admin-badge-icon">
+                        <img src={badge.icon} alt="" width={28} height={28} />
+                      </span>
+                      <span>{busy === `badge:${badge.id}` ? 'Saving…' : badge.name}</span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              <h3>Cloaks</h3>
               <div className="admin-give-row">
                 <label>
                   Give a cloak

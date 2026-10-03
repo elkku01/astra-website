@@ -337,3 +337,24 @@ test('early access: claims from before numbering get numbers in claim order', as
   const earlyAgain = await claim('11111111-0000-0000-0000-000000000000', 'Earlybird')
   assert.deepEqual([earlyAgain.body.outcome, earlyAgain.body.number], ['already', 1])
 })
+
+test('nametag icons: only an admin can set them, they show in the public lookup and survive grants', async () => {
+  assert.equal((await call('POST', '/api/admin/badge', { username: 'Bob', badge: 'owner' })).status, 401)
+  const login = await call('POST', '/api/admin/login', { password: PASSWORD })
+  const auth = { Authorization: `Bearer ${login.body.token}` }
+  assert.equal((await call('POST', '/api/admin/badge', { username: 'Bob', badge: 'king' }, auth)).status, 400)
+  const set = await call('POST', '/api/admin/badge', { username: 'Bob', badge: 'creator' }, auth)
+  assert.equal(set.status, 200)
+  assert.equal(set.body.badge, 'creator')
+  const lookup = await call('GET', `/api/cosmetics/owned?uuid=${BOB.uuid}`)
+  assert.equal(lookup.body.badge, 'creator')
+  // Giving or removing cloaks keeps the icon.
+  await call('POST', '/api/admin/grant', { username: 'Bob', capeIds: [PAID.id] }, auth)
+  await call('POST', '/api/admin/revoke', { username: 'Bob', capeIds: [PAID.id] }, auth)
+  assert.equal((await call('GET', `/api/cosmetics/owned?uuid=${BOB.uuid}`)).body.badge, 'creator')
+  // Clearing goes back to the default white icon.
+  await call('POST', '/api/admin/badge', { username: 'Bob', badge: '' }, auth)
+  assert.equal((await call('GET', `/api/cosmetics/owned?uuid=${BOB.uuid}`)).body.badge, '')
+  // Nobody else has one.
+  assert.equal((await call('GET', `/api/cosmetics/owned?uuid=${ALICE.uuid}`)).body.badge, '')
+})

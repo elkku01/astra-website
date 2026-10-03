@@ -1490,3 +1490,66 @@
   font-size: 14px;
   line-height: 1.6;
 }
+
+/* Admin: nametag icon roles */
+.admin-badge-note {
+  margin: -4px 0 10px;
+  color: var(--faint);
+  font-size: 12px;
+}
+
+.admin-badges {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 8px;
+}
+
+.admin-badge {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 12px 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    transform 150ms ease;
+}
+
+.admin-badge:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+
+.admin-badge.on {
+  border-color: var(--cyan);
+  background: var(--cyan-dim);
+  cursor: default;
+}
+
+.admin-badge:disabled:not(.on) {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+/* Icons sit on a nametag-like dark chip, like in game. */
+.admin-badge-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(60, 70, 60, 0.55);
+}
+
+.admin-badge-mini {
+  margin-right: 6px;
+  vertical-align: -2px;
+}
