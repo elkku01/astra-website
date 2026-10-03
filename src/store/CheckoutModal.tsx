@@ -9,6 +9,8 @@ type Props = {
   busy?: boolean
   needsAccount?: boolean
   soldOut?: boolean
+  /** Why the last attempt to open Stripe failed. */
+  error?: string
   onConfirm: () => void
   onLink?: () => void
   onClose: () => void
@@ -21,6 +23,7 @@ export default function CheckoutModal({
   busy,
   needsAccount,
   soldOut,
+  error,
   onConfirm,
   onLink,
   onClose,
@@ -50,6 +53,11 @@ export default function CheckoutModal({
             delivered (<Link to="/legal#purchases" target="_blank">details</Link>).
           </span>
         </label>
+        {error ? (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        ) : null}
         {soldOut ? (
           <p className="error">This launch collection is sold out.</p>
         ) : null}

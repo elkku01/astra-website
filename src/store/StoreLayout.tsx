@@ -35,6 +35,7 @@ export default function StoreLayout() {
   const [accountOpen, setAccountOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
+  const [checkoutError, setCheckoutError] = useState('')
   const [searchParams, setSearchParams] = useSearchParams()
   const stock = useCollectionStock()
 
@@ -74,6 +75,7 @@ export default function StoreLayout() {
       return
     }
     setBusy(true)
+    setCheckoutError('')
     try {
       await startCheckout({
         username: user.username,
@@ -82,7 +84,7 @@ export default function StoreLayout() {
         wingIds: checkout.kind === 'wing' ? [checkout.wing.id] : [],
       })
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Could not open checkout')
+      setCheckoutError(error instanceof Error ? error.message : 'Could not open checkout')
       setBusy(false)
     }
   }
@@ -157,12 +159,16 @@ export default function StoreLayout() {
           busy={busy}
           needsAccount={!user}
           soldOut={checkout.kind === 'collection' && stock.soldOut}
+          error={checkoutError}
           onConfirm={() => void confirm()}
           onLink={() => {
             setCheckout(null)
             setAccountOpen(true)
           }}
-          onClose={() => setCheckout(null)}
+          onClose={() => {
+            setCheckout(null)
+            setCheckoutError('')
+          }}
         />
       ) : null}
       <footer className="store-legal">
