@@ -32,7 +32,6 @@ export default function SiteNav({ extra }: { extra?: ReactNode }) {
         <NavLink to="/store" viewTransition>
           Store
         </NavLink>
-        <Link to="/#faq">FAQ</Link>
         <NavLink to="/status" viewTransition>
           Status
         </NavLink>
