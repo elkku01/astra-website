@@ -1,5 +1,5 @@
-import { lazy, Suspense, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { startLauncherDownload } from './download'
 import SiteNav, { DISCORD_URL, DiscordIcon } from './SiteNav'
 import './App.css'
@@ -89,6 +89,14 @@ function WindowsIcon() {
 function App() {
   const [shot, setShot] = useState(0)
   const [open, setOpen] = useState<number | null>(0)
+  const { hash } = useLocation()
+
+  // Coming from another page (e.g. /#features), the router does not scroll to the section by itself.
+  useEffect(() => {
+    if (!hash) return
+    const timer = window.setTimeout(() => document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth' }), 120)
+    return () => window.clearTimeout(timer)
+  }, [hash])
 
   return (
     <div className="home" id="top">

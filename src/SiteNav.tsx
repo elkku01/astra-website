@@ -19,7 +19,6 @@ export function DiscordIcon() {
 
 /** One top bar for every page: logo home, the same links, Discord and Download. */
 export default function SiteNav({ extra }: { extra?: ReactNode }) {
-  const onHome = typeof window !== 'undefined' && /\/(astra-website\/?)?$/.test(window.location.pathname)
   return (
     <header className="site-nav">
       <Link className="site-brand" to="/" viewTransition>
@@ -30,11 +29,11 @@ export default function SiteNav({ extra }: { extra?: ReactNode }) {
         <NavLink to="/" end viewTransition>
           Home
         </NavLink>
-        {onHome ? <a href="#features">Features</a> : <Link to="/#features">Features</Link>}
+        <Link to="/#features">Features</Link>
         <NavLink to="/store" viewTransition>
           Store
         </NavLink>
-        {onHome ? <a href="#faq">FAQ</a> : <Link to="/#faq">FAQ</Link>}
+        <Link to="/#faq">FAQ</Link>
         <NavLink to="/status" viewTransition>
           Status
         </NavLink>
