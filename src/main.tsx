@@ -1,6 +1,6 @@
-import { StrictMode } from 'react'
+import { StrictMode, useLayoutEffect } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
 import StatusPage from './StatusPage.tsx'
@@ -23,10 +23,20 @@ const basename = (() => {
   return base.replace(/\/$/, '')
 })()
 
+/** A new page starts at the top (unless the link points at a section, like /#faq). */
+function ScrollToTop() {
+  const { pathname, hash } = useLocation()
+  useLayoutEffect(() => {
+    if (!hash) window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [pathname, hash])
+  return null
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <SessionProvider>
       <BrowserRouter basename={basename}>
+        <ScrollToTop />
         <Routes>
           <Route
             path="/"

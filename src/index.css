@@ -115,12 +115,18 @@ p {
   animation: astra-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Page changes: the old page stays fully visible underneath while the new one fades in
+   on top, so nothing behind them (black) ever shows through. */
 ::view-transition-old(root) {
-  animation: astra-fade 180ms ease-in reverse both;
+  animation: none;
 }
 
 ::view-transition-new(root) {
-  animation: astra-fade 280ms ease-out both;
+  animation: astra-fade 260ms ease-out both;
+}
+
+html {
+  background: var(--bg);
 }
 
 @media (prefers-reduced-motion: reduce) {
