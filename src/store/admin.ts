@@ -33,7 +33,6 @@ async function adminJson<T>(path: string, init?: RequestInit): Promise<T> {
   const token = readAdminToken()
   const response = await fetch(storeApiUrl(path), {
     ...init,
-    credentials: 'include',
     headers: {
       Accept: 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
