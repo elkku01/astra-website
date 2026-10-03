@@ -1,14 +1,12 @@
 import {
   BufferAttribute,
   BufferGeometry,
-  Color,
   DoubleSide,
   Group,
-  LinearMipmapLinearFilter,
   Mesh,
-  MeshStandardMaterial,
   NearestFilter,
-  SRGBColorSpace,
+  NoColorSpace,
+  ShaderMaterial,
   TextureLoader,
   type Object3D,
   type Texture,
@@ -19,6 +17,52 @@ import { FLOATS_PER_VERTEX, WingModel, type WingPose } from './wingModel'
 export function wingTextureUrl(id: string): string {
   const base = import.meta.env.BASE_URL || '/'
   return `${base}wings/textures/${id}.png`.replace(/([^:/])\/{2,}/g, '$1/')
+}
+
+/**
+ * Minecraft's entity lighting, so the wings look exactly like in game: the two
+ * fixed world lights (0.2, 1, -0.7) and (-0.2, 1, 0.7), 40% ambient + 60%
+ * diffuse, per vertex, multiplied straight onto the texture colours (no tone
+ * mapping or colour-space conversion, like the game). Lights are taken in the
+ * player's own frame (facing south, as in the game's screenshots), so turning
+ * the preview does not change the shading.
+ */
+const VERTEX = `
+uniform float uYaw;
+varying vec2 vUv;
+varying float vLight;
+void main() {
+  vUv = uv;
+  vec3 n = normalize(mat3(modelMatrix) * normal);
+  float c = cos(-uYaw);
+  float s = sin(-uYaw);
+  n = vec3(c * n.x + s * n.z, n.y, -s * n.x + c * n.z);
+  vec3 l0 = normalize(vec3(0.2, 1.0, -0.7));
+  vec3 l1 = normalize(vec3(-0.2, 1.0, 0.7));
+  vLight = min(1.0, (max(0.0, dot(l0, n)) + max(0.0, dot(l1, n))) * 0.6 + 0.4);
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`
+
+const FRAGMENT = `
+uniform sampler2D map;
+varying vec2 vUv;
+varying float vLight;
+void main() {
+  vec4 texel = texture2D(map, vUv);
+  if (texel.a < 0.1) discard;
+  gl_FragColor = vec4(texel.rgb * vLight, 1.0);
+}
+`
+
+function minecraftMaterial(): ShaderMaterial {
+  return new ShaderMaterial({
+    uniforms: { map: { value: null }, uYaw: { value: 0 } },
+    vertexShader: VERTEX,
+    fragmentShader: FRAGMENT,
+    side: DoubleSide,
+    toneMapped: false,
+  })
 }
 
 /** Quads (4 vertices) from the model become two triangles each. */
@@ -68,28 +112,15 @@ export class WingAttachment {
   private readonly model = new WingModel()
   private readonly membraneGeometry = new BufferGeometry()
   private readonly boneGeometry = new BufferGeometry()
-  private readonly membraneMaterial: MeshStandardMaterial
-  private readonly boneMaterial: MeshStandardMaterial
+  private readonly material = minecraftMaterial()
   private texture: Texture | null = null
   private disposed = false
 
   constructor() {
-    const common = {
-      side: DoubleSide,
-      transparent: false,
-      alphaTest: 0.1,
-      roughness: 1,
-      metalness: 0,
-    }
-    // The game gives the membrane a glow floor so the nebula shines in the dark.
-    this.membraneMaterial = new MeshStandardMaterial({
-      ...common,
-      emissive: new Color(0xffffff),
-      emissiveIntensity: 0.28,
-    })
-    this.boneMaterial = new MeshStandardMaterial(common)
-    this.group.add(new Mesh(this.membraneGeometry, this.membraneMaterial))
-    this.group.add(new Mesh(this.boneGeometry, this.boneMaterial))
+    // In daylight the game lights membrane and bones the same way (the membrane's
+    // glow floor only shows in the dark), so one material serves both.
+    this.group.add(new Mesh(this.membraneGeometry, this.material))
+    this.group.add(new Mesh(this.boneGeometry, this.material))
     this.group.scale.set(1, -1, -1)
     this.group.position.set(0, 6, 0)
     this.group.visible = false
@@ -99,6 +130,11 @@ export class WingAttachment {
     body.add(this.group)
   }
 
+  /** The preview turns the player to show the back; light the wings as if they faced south. */
+  setFacing(yaw: number) {
+    this.material.uniforms.uYaw.value = yaw
+  }
+
   async load(id: string) {
     const texture = await new TextureLoader().loadAsync(wingTextureUrl(id))
     if (this.disposed) {
@@ -106,17 +142,15 @@ export class WingAttachment {
       return
     }
     texture.flipY = false // the model's v runs top-down like Minecraft's
-    texture.colorSpace = SRGBColorSpace
+    // Raw texture values, sharp pixels and no mipmaps: the game does the same for entities.
+    texture.colorSpace = NoColorSpace
     texture.magFilter = NearestFilter
-    texture.minFilter = LinearMipmapLinearFilter
+    texture.minFilter = NearestFilter
+    texture.generateMipmaps = false
     texture.needsUpdate = true
     this.texture?.dispose()
     this.texture = texture
-    for (const material of [this.membraneMaterial, this.boneMaterial]) {
-      material.map = texture
-      material.needsUpdate = true
-    }
-    this.membraneMaterial.emissiveMap = texture
+    this.material.uniforms.map.value = texture
     this.group.visible = true
   }
 
@@ -131,8 +165,7 @@ export class WingAttachment {
     this.group.removeFromParent()
     this.membraneGeometry.dispose()
     this.boneGeometry.dispose()
-    this.membraneMaterial.dispose()
-    this.boneMaterial.dispose()
+    this.material.dispose()
     this.texture?.dispose()
   }
 }

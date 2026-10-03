@@ -9,8 +9,6 @@ import type { StoreOutlet } from './StoreLayout'
 const POSES: { id: WingPoseName; label: string }[] = [
   { id: 'standing', label: 'Standing' },
   { id: 'walking', label: 'Walking' },
-  { id: 'flying', label: 'Flying' },
-  { id: 'sneaking', label: 'Sneaking' },
 ]
 
 export default function WingDetail() {
@@ -84,7 +82,7 @@ export default function WingDetail() {
             </button>
           )}
           <ul className="detail-points">
-            <li>Same model and animation as in game: they beat faster when you run, flap when you fly or fall, and fold when you sneak.</li>
+            <li>Same model, colours and animation as in game: they beat faster when you run, flap when you fly or fall, and fold when you sneak.</li>
             <li>Equip them in game from the Astra cosmetics menu.</li>
             <li>Other Astra players on your server see them too.</li>
           </ul>

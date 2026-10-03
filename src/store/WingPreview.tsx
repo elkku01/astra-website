@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import {
-  CrouchAnimation,
   IdleAnimation,
   SkinViewer,
   WalkingAnimation,
@@ -10,7 +9,7 @@ import { skinSources } from './api'
 import { WingAttachment } from './wingMesh'
 import steveSkin from '../assets/steve.png'
 
-export type WingPoseName = 'standing' | 'walking' | 'flying' | 'sneaking'
+export type WingPoseName = 'standing' | 'walking'
 
 type Props = {
   wingId: string
@@ -36,11 +35,6 @@ function lockPreviewCamera(viewer: SkinViewer) {
 
 function animationFor(pose: WingPoseName): PlayerAnimation {
   if (pose === 'walking') return new WalkingAnimation()
-  if (pose === 'sneaking') {
-    const crouch = new CrouchAnimation()
-    crouch.runOnce = true
-    return crouch
-  }
   return new IdleAnimation()
 }
 
@@ -69,6 +63,7 @@ export default function WingPreview({
     viewer.loadCape(null)
     const wings = new WingAttachment()
     wings.attachTo(viewer.playerObject.skin.body)
+    wings.setFacing(viewer.playerWrapper.rotation.y)
     viewerRef.current = viewer
     wingsRef.current = wings
     return () => {
@@ -116,13 +111,13 @@ export default function WingPreview({
     if (!viewer || !wings) return
     const animation = animationFor(pose)
     // Runs every rendered frame, right after the body pose, so the wings
-    // follow the body (crouch included) without lagging a frame.
+    // follow the body without lagging a frame.
     animation.addAnimation(() => {
       wings.update({
         timeSeconds: performance.now() / 1000,
         walk: pose === 'walking' ? 1 : 0,
-        airborne: pose === 'flying',
-        sneaking: pose === 'sneaking',
+        airborne: false,
+        sneaking: false,
         armored: false,
       })
     })

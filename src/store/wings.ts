@@ -17,13 +17,13 @@ export type Wing = {
 }
 
 export const WINGS: Wing[] = [
-  { id: 'red', name: 'Crimson Nebula Wings', blurb: 'Deep red nebula with glowing veins.', price: WING_PRICE, purchasable: true },
-  { id: 'purple', name: 'Void Nebula Wings', blurb: 'Violet gas and starlight.', price: WING_PRICE, purchasable: true },
-  { id: 'blue', name: 'Frost Nebula Wings', blurb: 'Ice-blue nebula, bright veins.', price: WING_PRICE, purchasable: true },
-  { id: 'gold', name: 'Solar Nebula Wings', blurb: 'Molten gold and amber.', price: WING_PRICE, purchasable: true },
-  { id: 'green', name: 'Venom Nebula Wings', blurb: 'Toxic green glow.', price: WING_PRICE, purchasable: true },
-  { id: 'white', name: 'Pearl Nebula Wings', blurb: 'Silver-white nebula.', price: WING_PRICE, purchasable: true },
-  { id: EARLY_ACCESS_WING, name: 'Obsidian Wings', blurb: 'Early-access reward for the first 1000 Astra players.', price: 0, purchasable: false },
+  { id: 'red', name: 'Crimson Nebula Wings', blurb: 'Bat-style wings with a deep red nebula and glowing veins.', price: WING_PRICE, purchasable: true },
+  { id: 'purple', name: 'Void Nebula Wings', blurb: 'Bat-style wings with a violet nebula and scattered stars.', price: WING_PRICE, purchasable: true },
+  { id: 'blue', name: 'Frost Nebula Wings', blurb: 'Bat-style wings with an icy blue nebula and bright veins.', price: WING_PRICE, purchasable: true },
+  { id: 'gold', name: 'Solar Nebula Wings', blurb: 'Bat-style wings with a molten gold and amber nebula.', price: WING_PRICE, purchasable: true },
+  { id: 'green', name: 'Venom Nebula Wings', blurb: 'Bat-style wings with a toxic green nebula glow.', price: WING_PRICE, purchasable: true },
+  { id: 'white', name: 'Pearl Nebula Wings', blurb: 'Bat-style wings in silver and pearl grey.', price: WING_PRICE, purchasable: true },
+  { id: EARLY_ACCESS_WING, name: 'Obsidian Wings', blurb: 'Black obsidian wings, the reward for the first 1000 Astra players.', price: 0, purchasable: false },
 ]
 
 export function getWing(id: string): Wing | undefined {

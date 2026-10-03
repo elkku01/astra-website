@@ -15,8 +15,9 @@ export const CLOAK_PRICE = 3.99
 export const COLLECTION_LAUNCH_PRICE = 8.99
 export const COLLECTION_LIMIT = 100
 
+/** Cloak names read like: "torii" cloak (the name in quotes, lower case). */
 function cloak(label: string): string {
-  return `${label} cloak`
+  return `"${label.toLowerCase()}" cloak`
 }
 
 const ADDED: Record<string, string> = {
@@ -56,39 +57,39 @@ const ADDED: Record<string, string> = {
 }
 
 const DRAFTS: Omit<Cape, 'createdAt'>[] = [
-  { id: 'torii', name: cloak('Torii'), price: CLOAK_PRICE, blurb: 'A shrine gate on black silk.', categories: ['popular'], frames: 1, frameTimeMs: 1 },
-  { id: 'gojo', name: cloak('Gojo'), price: CLOAK_PRICE, blurb: 'Blindfold, six eyes, night sky.', categories: ['popular'], frames: 1, frameTimeMs: 1 },
-  { id: 'ash', name: cloak('Ash'), price: CLOAK_PRICE, blurb: 'Pale dust over charcoal.', categories: [], frames: 1, frameTimeMs: 1 },
-  { id: 'goated', name: cloak('Goated'), price: CLOAK_PRICE, blurb: 'A small flex, stitched in.', categories: ['popular'], frames: 1, frameTimeMs: 1 },
-  { id: 'shadow', name: cloak('Shadow'), price: CLOAK_PRICE, blurb: 'Almost nothing, then a silhouette.', categories: [], frames: 1, frameTimeMs: 1 },
-  { id: 'spidey', name: cloak('Spidey'), price: CLOAK_PRICE, blurb: 'Webbing on a red fold.', categories: ['new'], frames: 1, frameTimeMs: 1 },
-  { id: 'swag', name: cloak('Swag'), price: CLOAK_PRICE, blurb: 'Loud type on a dark drape.', categories: [], frames: 1, frameTimeMs: 1 },
-  { id: 'benjamin', name: cloak('Dollar'), price: CLOAK_PRICE, blurb: 'A hundred-dollar drape.', categories: [], frames: 1, frameTimeMs: 1 },
-  { id: 'void', name: cloak('Void'), price: CLOAK_PRICE, blurb: 'Deep space, thin cyan edge.', categories: ['popular'], frames: 1, frameTimeMs: 1 },
-  { id: 'monster', name: cloak('Monster'), price: CLOAK_PRICE, blurb: 'A creature cut into the cloth.', categories: [], frames: 1, frameTimeMs: 1 },
-  { id: 'cross', name: cloak('Cross'), price: CLOAK_PRICE, blurb: 'A shifting cross on black.', categories: ['animated', 'popular'], frames: 24, frameTimeMs: 50 },
-  { id: 'youdied', name: cloak('You Died'), price: CLOAK_PRICE, blurb: 'The screen you never wanted.', categories: [], frames: 1, frameTimeMs: 1 },
-  { id: 'default', name: cloak('Default'), price: CLOAK_PRICE, blurb: 'The clean Astra starter cloak.', categories: ['popular'], frames: 1, frameTimeMs: 1 },
-  { id: 'tuff', name: cloak('Tuff'), price: CLOAK_PRICE, blurb: 'Stone-block grain.', categories: [], frames: 1, frameTimeMs: 1 },
-  { id: 'happens', name: cloak('Happens'), price: CLOAK_PRICE, blurb: 'It happens. Wear it anyway.', categories: [], frames: 1, frameTimeMs: 1 },
-  { id: 'astraclient', name: cloak('Eclipse'), price: 0, blurb: 'The client mark, looping in orbit.', categories: ['animated', 'popular'], frames: 12, frameTimeMs: 70 },
-  { id: 'ilove', name: cloak('I Love Astra'), price: 0, blurb: 'A heart for the client.', categories: ['new'], frames: 1, frameTimeMs: 1 },
-  { id: 'ilove189', name: cloak('I Love 1.8.9'), price: CLOAK_PRICE, blurb: 'For the old version, still.', categories: ['new'], frames: 1, frameTimeMs: 1 },
-  { id: 'enderman', name: cloak('Enderman'), price: CLOAK_PRICE, blurb: 'Purple eyes in the dark.', categories: [], frames: 1, frameTimeMs: 1 },
-  { id: 'wither', name: cloak('Wither'), price: CLOAK_PRICE, blurb: 'Three skulls, one cloak.', categories: [], frames: 1, frameTimeMs: 1 },
-  { id: 'creeper', name: cloak('Creeper'), price: CLOAK_PRICE, blurb: 'The face everyone knows.', categories: [], frames: 1, frameTimeMs: 1 },
-  { id: 'steve', name: cloak('Steve'), price: CLOAK_PRICE, blurb: 'Classic player, classic cloak.', categories: [], frames: 1, frameTimeMs: 1 },
-  { id: 'cat', name: cloak('Cat'), price: CLOAK_PRICE, blurb: 'Whiskers on a dark fold.', categories: ['new'], frames: 1, frameTimeMs: 1 },
-  { id: 'blep', name: cloak('Blep'), price: CLOAK_PRICE, blurb: 'Tongue out. No notes.', categories: ['new'], frames: 1, frameTimeMs: 1 },
-  { id: 'boom', name: cloak('Boom'), price: CLOAK_PRICE, blurb: 'A small explosion, wearable.', categories: [], frames: 1, frameTimeMs: 1 },
-  { id: 'hamster', name: cloak('Hamster'), price: CLOAK_PRICE, blurb: 'Tiny, round, committed.', categories: ['new'], frames: 1, frameTimeMs: 1 },
-  { id: 'glassstar', name: cloak('Glass Star'), price: CLOAK_PRICE, blurb: 'A star caught in glass.', categories: ['new'], frames: 1, frameTimeMs: 1 },
-  { id: 'unoreverse', name: cloak('Uno Reverse'), price: CLOAK_PRICE, blurb: 'No, you.', categories: [], frames: 1, frameTimeMs: 1 },
-  { id: 'irl', name: cloak('IRL'), price: CLOAK_PRICE, blurb: 'For when the server is life.', categories: [], frames: 1, frameTimeMs: 1 },
-  { id: 'aura', name: cloak('Aura'), price: CLOAK_PRICE, blurb: 'A slow animated glow.', categories: ['animated', 'new', 'popular'], frames: 24, frameTimeMs: 168 },
-  { id: 'miku', name: cloak('Miku'), price: CLOAK_PRICE, blurb: 'Teal twin-tails on black.', categories: ['new'], frames: 1, frameTimeMs: 1 },
-  { id: 'muichiro', name: cloak('Muichiro'), price: CLOAK_PRICE, blurb: 'Mist-hashira teal.', categories: ['new'], frames: 1, frameTimeMs: 1 },
-  { id: 'itadori', name: cloak('Itadori'), price: CLOAK_PRICE, blurb: 'Pink hair, hard lines.', categories: ['new'], frames: 1, frameTimeMs: 1 },
+  { id: 'torii', name: cloak('Torii'), price: CLOAK_PRICE, blurb: 'A pixel-art torii gate under pink cherry blossoms, with Mount Fuji behind it.', categories: ['popular'], frames: 1, frameTimeMs: 1 },
+  { id: 'gojo', name: cloak('Gojo'), price: CLOAK_PRICE, blurb: 'Satoru Gojo from Jujutsu Kaisen: white hair, black blindfold.', categories: ['popular'], frames: 1, frameTimeMs: 1 },
+  { id: 'ash', name: cloak('Ash'), price: CLOAK_PRICE, blurb: 'Ash Ketchum from Pokémon in his red and white cap.', categories: [], frames: 1, frameTimeMs: 1 },
+  { id: 'goated', name: cloak('Goated'), price: CLOAK_PRICE, blurb: '"Wait, I\'m goated" in black on white.', categories: ['popular'], frames: 1, frameTimeMs: 1 },
+  { id: 'shadow', name: cloak('Shadow'), price: CLOAK_PRICE, blurb: 'Shadow the Hedgehog sitting in baggy jeans and sneakers.', categories: [], frames: 1, frameTimeMs: 1 },
+  { id: 'spidey', name: cloak('Spidey'), price: CLOAK_PRICE, blurb: 'Spider-Man in a blue blazer and a gold chain.', categories: ['new'], frames: 1, frameTimeMs: 1 },
+  { id: 'swag', name: cloak('Swag'), price: CLOAK_PRICE, blurb: '"#SWAG" in big black letters on white.', categories: [], frames: 1, frameTimeMs: 1 },
+  { id: 'benjamin', name: cloak('Dollar'), price: CLOAK_PRICE, blurb: 'A hundred-dollar bill with Benjamin Franklin.', categories: [], frames: 1, frameTimeMs: 1 },
+  { id: 'void', name: cloak('Void'), price: CLOAK_PRICE, blurb: 'A black hole with a glowing orange and purple ring in deep space.', categories: ['popular'], frames: 1, frameTimeMs: 1 },
+  { id: 'monster', name: cloak('Monster'), price: CLOAK_PRICE, blurb: 'A silver Monster Energy Zero Sugar Ultra can on black.', categories: [], frames: 1, frameTimeMs: 1 },
+  { id: 'cross', name: cloak('Cross'), price: CLOAK_PRICE, blurb: 'An animated silver cross that shimmers on black.', categories: ['animated', 'popular'], frames: 24, frameTimeMs: 50 },
+  { id: 'youdied', name: cloak('You Died'), price: CLOAK_PRICE, blurb: '"You died!" in white pixel letters on black, like the death screen.', categories: [], frames: 1, frameTimeMs: 1 },
+  { id: 'default', name: cloak('Default'), price: CLOAK_PRICE, blurb: 'A white silhouette doing the default dance on black.', categories: ['popular'], frames: 1, frameTimeMs: 1 },
+  { id: 'tuff', name: cloak('Tuff'), price: CLOAK_PRICE, blurb: '"Wait, I\'m actually tuff" in black on white.', categories: [], frames: 1, frameTimeMs: 1 },
+  { id: 'happens', name: cloak('Happens'), price: CLOAK_PRICE, blurb: '"Sh*t happens." in plain black text on white.', categories: [], frames: 1, frameTimeMs: 1 },
+  { id: 'astraclient', name: cloak('Eclipse'), price: 0, blurb: 'The Astra client logo in front of a spinning black hole. Free for every player.', categories: ['animated', 'popular'], frames: 12, frameTimeMs: 70 },
+  { id: 'ilove', name: cloak('I Love Astra'), price: 0, blurb: '"I ♥ Astra Client" in black and red on white. Free for every player.', categories: ['new'], frames: 1, frameTimeMs: 1 },
+  { id: 'ilove189', name: cloak('I Love 1.8.9'), price: CLOAK_PRICE, blurb: '"I ♥ 1.8.9" in black and red on white.', categories: ['new'], frames: 1, frameTimeMs: 1 },
+  { id: 'enderman', name: cloak('Enderman'), price: CLOAK_PRICE, blurb: 'An Enderman with purple ornaments and glitch details.', categories: [], frames: 1, frameTimeMs: 1 },
+  { id: 'wither', name: cloak('Wither'), price: CLOAK_PRICE, blurb: 'The Wither in a black, white and grey collage.', categories: [], frames: 1, frameTimeMs: 1 },
+  { id: 'creeper', name: cloak('Creeper'), price: CLOAK_PRICE, blurb: 'A pink Creeper face with a silver cross, collage style.', categories: [], frames: 1, frameTimeMs: 1 },
+  { id: 'steve', name: cloak('Steve'), price: CLOAK_PRICE, blurb: 'Steve with a blue biohazard sign and a silver cross, collage style.', categories: [], frames: 1, frameTimeMs: 1 },
+  { id: 'cat', name: cloak('Cat'), price: CLOAK_PRICE, blurb: 'A cat licking the camera up close.', categories: ['new'], frames: 1, frameTimeMs: 1 },
+  { id: 'blep', name: cloak('Blep'), price: CLOAK_PRICE, blurb: 'A white cat with its tongue out.', categories: ['new'], frames: 1, frameTimeMs: 1 },
+  { id: 'boom', name: cloak('Boom'), price: CLOAK_PRICE, blurb: 'A cat in a propeller hat holding a lollipop, with an explosion behind it.', categories: [], frames: 1, frameTimeMs: 1 },
+  { id: 'hamster', name: cloak('Hamster'), price: CLOAK_PRICE, blurb: 'The staring hamster meme, very close to the camera.', categories: ['new'], frames: 1, frameTimeMs: 1 },
+  { id: 'glassstar', name: cloak('Glass Star'), price: CLOAK_PRICE, blurb: 'A glowing four-point star on dark liquid metal.', categories: ['new'], frames: 1, frameTimeMs: 1 },
+  { id: 'unoreverse', name: cloak('Uno Reverse'), price: CLOAK_PRICE, blurb: 'The red Uno reverse card.', categories: [], frames: 1, frameTimeMs: 1 },
+  { id: 'irl', name: cloak('IRL'), price: CLOAK_PRICE, blurb: 'A guy in glasses in front of a real-life Minecraft forest.', categories: [], frames: 1, frameTimeMs: 1 },
+  { id: 'aura', name: cloak('Aura'), price: CLOAK_PRICE, blurb: 'An animated icy-blue aura symbol on black.', categories: ['animated', 'new', 'popular'], frames: 24, frameTimeMs: 168 },
+  { id: 'miku', name: cloak('Miku'), price: CLOAK_PRICE, blurb: 'Hatsune Miku with teal twin tails, winking.', categories: ['new'], frames: 1, frameTimeMs: 1 },
+  { id: 'muichiro', name: cloak('Muichiro'), price: CLOAK_PRICE, blurb: 'Muichiro Tokito from Demon Slayer, standing in the mist.', categories: ['new'], frames: 1, frameTimeMs: 1 },
+  { id: 'itadori', name: cloak('Itadori'), price: CLOAK_PRICE, blurb: 'Yuji Itadori from Jujutsu Kaisen, drawn in black ink.', categories: ['new'], frames: 1, frameTimeMs: 1 },
 ]
 
 export const CAPES: Cape[] = DRAFTS.map((cape) => {

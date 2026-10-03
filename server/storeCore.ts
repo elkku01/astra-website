@@ -364,7 +364,7 @@ export class CosmeticsStore {
       lines = ids.map((id) => {
         const cape = CAPES.find((item) => item.id === id)!
         return {
-          name: `Astra Cloak: ${cape.name}`,
+          name: `Astra ${cape.name}`,
           description: `Unlocks on ${account.username}.`,
           amountCents: Math.round(cape.price * 100),
         }
