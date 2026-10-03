@@ -19,6 +19,8 @@ type Props = {
   skinTexture?: string | null
   width?: number
   height?: number
+  /** Camera zoom (bigger shows the player larger). */
+  zoom?: number
 }
 
 function lockPreviewCamera(viewer: SkinViewer) {
@@ -47,6 +49,7 @@ export default function WingPreview({
   skinTexture,
   width = 400,
   height = 560,
+  zoom = 0.62,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const viewerRef = useRef<SkinViewer | null>(null)
@@ -55,7 +58,7 @@ export default function WingPreview({
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const viewer = new SkinViewer({ canvas, width, height, fov: 50, zoom: 0.62 })
+    const viewer = new SkinViewer({ canvas, width, height, fov: 50, zoom })
     viewer.globalLight.intensity = 2.4
     viewer.cameraLight.intensity = 0.8
     lockPreviewCamera(viewer)
@@ -72,7 +75,7 @@ export default function WingPreview({
       viewerRef.current = null
       wingsRef.current = null
     }
-  }, [width, height])
+  }, [width, height, zoom])
 
   useEffect(() => {
     const viewer = viewerRef.current
