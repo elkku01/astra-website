@@ -1553,3 +1553,7 @@
   margin-right: 6px;
   vertical-align: -2px;
 }
+
+.admin-wing-thumb {
+  object-fit: contain;
+}

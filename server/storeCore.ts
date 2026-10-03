@@ -575,10 +575,10 @@ export class CosmeticsStore {
     return true
   }
 
-  async adminGrant(username: string, capeIds: string[], collection: boolean) {
+  async adminGrant(username: string, capeIds: string[], collection: boolean, wingIds: string[] = []) {
     const account = await this.verifiedAccount(username)
     const ids = knownCapeIds(capeIds)
-    return this.grant(account, ids, collection || isFullCollection(ids))
+    return this.grant(account, ids, collection || isFullCollection(ids), { wings: knownWingIds(wingIds) })
   }
 
   /** Sets (or with '' clears) a player's nametag icon role. Admin only; badges are never sold. */
@@ -605,10 +605,11 @@ export class CosmeticsStore {
     })
   }
 
-  async adminRevoke(username: string, capeIds: string[]) {
+  async adminRevoke(username: string, capeIds: string[], wingIds: string[] = []) {
     const ids = knownCapeIds(capeIds)
-    if (ids.length === 0) throw new HttpError(400, 'Select at least one cloak to remove.')
-    return this.revoke(await this.verifiedAccount(username), ids)
+    const wings = knownWingIds(wingIds)
+    if (ids.length === 0 && wings.length === 0) throw new HttpError(400, 'Select at least one cloak or wings to remove.')
+    return this.revoke(await this.verifiedAccount(username), ids, wings)
   }
 
   // ---- HTTP -------------------------------------------------------------------------
@@ -683,11 +684,12 @@ export class CosmeticsStore {
         const body = await readJson(request)
         const username = String(body.username || '').trim()
         const capeIds = Array.isArray(body.capeIds) ? body.capeIds.map(String) : []
+        const wingIds = Array.isArray(body.wingIds) ? body.wingIds.map(String) : []
         if (path === '/api/admin/grant' && method === 'POST') {
-          return send(200, await this.adminGrant(username, capeIds, Boolean(body.collection)))
+          return send(200, await this.adminGrant(username, capeIds, Boolean(body.collection), wingIds))
         }
         if (path === '/api/admin/revoke' && method === 'POST') {
-          return send(200, await this.adminRevoke(username, capeIds))
+          return send(200, await this.adminRevoke(username, capeIds, wingIds))
         }
         if (path === '/api/admin/badge' && method === 'POST') {
           return send(200, await this.adminSetBadge(username, String(body.badge || '')))

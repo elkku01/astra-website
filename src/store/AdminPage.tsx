@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import {
   adminGrant,
+  adminGrantWings,
   adminLogout,
   adminRevoke,
+  adminRevokeWings,
   adminSetBadge,
   fetchAdminPlayers,
   isAdminAuthed,
@@ -15,6 +17,8 @@ import { INVALID_MINECRAFT_ACCOUNT, resolveMinecraftAccount } from './minecraftA
 import { capeThumbUrl } from './capeArt'
 import { CAPES, getCape, paidCapes } from './capes'
 import { useSession } from './session'
+import { WINGS, getWing } from './wings'
+import { wingImage } from './WingsSection'
 
 function ownedIds(player: AdminPlayer): string[] {
   if (player.collection) return CAPES.map((cape) => cape.id)
@@ -27,6 +31,7 @@ export default function AdminPage() {
   const [query, setQuery] = useState('')
   const [activeName, setActiveName] = useState('')
   const [giveId, setGiveId] = useState('')
+  const [giveWingId, setGiveWingId] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
@@ -74,6 +79,8 @@ export default function AdminPage() {
 
   const owned = active ? ownedIds(active) : []
   const missing = CAPES.filter((cape) => !owned.includes(cape.id))
+  const ownedWings = active?.ownedWingIds || []
+  const missingWings = WINGS.filter((wing) => !ownedWings.includes(wing.id))
 
   if (!authed) return <Navigate to="/store" replace />
 
@@ -83,6 +90,7 @@ export default function AdminPage() {
 
   async function activatePlayer(name: string) {
     setGiveId('')
+    setGiveWingId('')
     setNotice('')
     const known = players.some((player) => player.username.toLowerCase() === name.toLowerCase())
     if (known) {
@@ -118,6 +126,42 @@ export default function AdminPage() {
       await refreshUser(record.username)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not give cloak')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function giveWings(ids: string[]) {
+    if (!active || ids.length === 0) return
+    setBusy('give-wings')
+    setError('')
+    setNotice('')
+    try {
+      const account = await resolveMinecraftAccount(active.username)
+      const record = await adminGrantWings(account.username, ids)
+      setNotice(`Gave ${ids.length === 1 ? getWing(ids[0])?.name || ids[0] : `${ids.length} wings`} to ${record.username}.`)
+      setGiveWingId('')
+      await loadPlayers()
+      await refreshUser(record.username)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not give wings')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function removeWings(id: string) {
+    if (!active) return
+    setBusy(`wing:${id}`)
+    setError('')
+    setNotice('')
+    try {
+      const record = await adminRevokeWings(active.username, [id])
+      setNotice(`Removed ${getWing(id)?.name || id} from ${record.username}.`)
+      await loadPlayers()
+      await refreshUser(record.username)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not remove wings')
     } finally {
       setBusy(null)
     }
@@ -246,6 +290,7 @@ export default function AdminPage() {
                       </strong>
                       <em>
                         {player.collection ? 'Full collection' : `${ownedIds(player).length} cloaks`}
+                        {player.ownedWingIds?.length ? ` · ${player.ownedWingIds.length} wings` : ''}
                       </em>
                     </span>
                   </button>
@@ -361,6 +406,66 @@ export default function AdminPage() {
                       </li>
                     )
                   })}
+                </ul>
+              )}
+
+              <h3>Wings</h3>
+              <div className="admin-give-row">
+                <label>
+                  Give wings
+                  <select
+                    value={giveWingId}
+                    onChange={(event) => setGiveWingId(event.target.value)}
+                    disabled={missingWings.length === 0 || busy !== null}
+                  >
+                    <option value="">
+                      {missingWings.length === 0 ? 'They already own every wing' : 'Choose wings'}
+                    </option>
+                    {missingWings.map((wing) => (
+                      <option key={wing.id} value={wing.id}>
+                        {wing.name}
+                        {wing.purchasable ? '' : ' (reward)'}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  disabled={!giveWingId || busy !== null}
+                  onClick={() => void giveWings([giveWingId])}
+                >
+                  {busy === 'give-wings' ? 'Giving…' : 'Give'}
+                </button>
+                {missingWings.length > 1 ? (
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    disabled={busy !== null}
+                    onClick={() => void giveWings(missingWings.map((wing) => wing.id))}
+                  >
+                    Give all wings
+                  </button>
+                ) : null}
+              </div>
+              {ownedWings.length === 0 ? (
+                <p className="empty">No wings yet.</p>
+              ) : (
+                <ul className="admin-owned">
+                  {ownedWings.map((id) => (
+                    <li key={id}>
+                      <img className="admin-wing-thumb" src={wingImage(id)} alt="" width={28} height={20} />
+                      <span>{getWing(id)?.name || id}</span>
+                      <button
+                        type="button"
+                        className="admin-remove"
+                        disabled={busy !== null}
+                        onClick={() => void removeWings(id)}
+                      >
+                        {busy === `wing:${id}` ? 'Removing…' : 'Remove'}
+                      </button>
+                    </li>
+                  ))}
                 </ul>
               )}
             </>

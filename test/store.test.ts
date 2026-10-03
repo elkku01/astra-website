@@ -358,3 +358,16 @@ test('nametag icons: only an admin can set them, they show in the public lookup 
   // Nobody else has one.
   assert.equal((await call('GET', `/api/cosmetics/owned?uuid=${ALICE.uuid}`)).body.badge, '')
 })
+
+test('admin can give and remove any wings, including the reward wings', async () => {
+  const login = await call('POST', '/api/admin/login', { password: PASSWORD })
+  const auth = { Authorization: `Bearer ${login.body.token}` }
+  assert.equal((await call('POST', '/api/admin/grant', { username: 'Bob', wingIds: ['red', 'black', 'nope'] })).status, 401)
+  const given = await call('POST', '/api/admin/grant', { username: 'Bob', capeIds: [], wingIds: ['red', 'black', 'nope'] }, auth)
+  assert.equal(given.status, 200)
+  assert.deepEqual([...(given.body.ownedWingIds as string[])].sort(), ['black', 'red'])
+  const removed = await call('POST', '/api/admin/revoke', { username: 'Bob', capeIds: [], wingIds: ['red'] }, auth)
+  assert.equal(removed.status, 200)
+  assert.deepEqual(removed.body.ownedWingIds, ['black'])
+  assert.equal((await call('POST', '/api/admin/revoke', { username: 'Bob', capeIds: [], wingIds: [] }, auth)).status, 400)
+})

@@ -7,6 +7,7 @@ export type AdminPlayer = {
   username: string
   ownedCapeIds: string[]
   collection: boolean
+  ownedWingIds?: string[]
   /** Nametag icon role ('' = default white). */
   badge?: string
 }
@@ -80,10 +81,21 @@ export async function fetchAdminPlayers(): Promise<AdminPlayer[]> {
   return Array.isArray(body.players) ? body.players : []
 }
 
-export async function adminGrant(username: string, capeIds: string[], collection = false) {
+export async function adminGrant(username: string, capeIds: string[], collection = false, wingIds: string[] = []) {
   return adminJson<AdminPlayer>('/api/admin/grant', {
     method: 'POST',
-    body: JSON.stringify({ username, capeIds, collection }),
+    body: JSON.stringify({ username, capeIds, collection, wingIds }),
+  })
+}
+
+export async function adminGrantWings(username: string, wingIds: string[]) {
+  return adminGrant(username, [], false, wingIds)
+}
+
+export async function adminRevokeWings(username: string, wingIds: string[]) {
+  return adminJson<AdminPlayer>('/api/admin/revoke', {
+    method: 'POST',
+    body: JSON.stringify({ username, capeIds: [], wingIds }),
   })
 }
 
