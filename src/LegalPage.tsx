@@ -5,6 +5,7 @@ import './LegalPage.css'
 /* Who runs Astra and how to reach us. Support is on the Astra Discord. */
 const OPERATOR = 'the Astra Client team'
 const SUPPORT_URL = 'https://discord.gg/byKpped2K'
+const CONTACT_EMAIL = 'support.astraclient@gmail.com'
 const LAST_UPDATED = '3 October 2026'
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
@@ -63,7 +64,8 @@ export default function LegalPage() {
           <p>
             This policy explains what Astra (the Astra Client launcher, the Astra Client mod, this
             website and the Astra store) collects, why, and what you can do about it. Astra is run by
-            {OPERATOR} in Finland. For questions, use our{' '}
+            {OPERATOR} in Finland, the controller of your data. Contact:{' '}
+            <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> or our{' '}
             <a href={SUPPORT_URL} rel="noreferrer" target="_blank">Discord server</a>.
           </p>
 
@@ -165,8 +167,8 @@ export default function LegalPage() {
           <p>
             You can ask for a copy of your data, correction, deletion, restriction or portability, and
             you can object to processing based on legitimate interest or withdraw consent at any time.
-            Open a ticket on our <a href={SUPPORT_URL} rel="noreferrer" target="_blank">Discord server</a>{' '}
-            with your Minecraft name and, for Discord features, your Discord username. Deleting owned cosmetics removes them from your
+            Email <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> or open a ticket on our{' '}
+            <a href={SUPPORT_URL} rel="noreferrer" target="_blank">Discord server</a> with your Minecraft name and, for Discord features, your Discord username. Deleting owned cosmetics removes them from your
             account permanently. You can also complain to the Finnish Data Protection Ombudsman
             (<a href="https://tietosuoja.fi/en" rel="noreferrer" target="_blank">tietosuoja.fi</a>) or your
             local authority.
@@ -257,8 +259,7 @@ export default function LegalPage() {
           <p>
             Astra, its code, artwork and cosmetics belong to {OPERATOR} or its licensors. Other names and
             trademarks belong to their owners. If you believe something in Astra infringes your rights,
-            tell us on our <a href={SUPPORT_URL} rel="noreferrer" target="_blank">Discord server</a> and we
-            will review it promptly.
+            email <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> and we will review it promptly.
           </p>
 
           <h3>9. Changes, law and contact</h3>
@@ -266,8 +267,9 @@ export default function LegalPage() {
             We may update these terms; we will change the date above and, for significant changes, tell
             you in the launcher or on this site. Continued use means you accept the updated terms. These
             terms are governed by the laws of Finland. If you are a consumer, you keep the protection of
-            the mandatory laws of your country of residence and may bring claims there. Questions: ask on
-            our <a href={SUPPORT_URL} rel="noreferrer" target="_blank">Discord server</a>.
+            the mandatory laws of your country of residence and may bring claims there. Questions:{' '}
+            <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> or our{' '}
+            <a href={SUPPORT_URL} rel="noreferrer" target="_blank">Discord server</a>.
           </p>
         </Section>
 
@@ -295,8 +297,9 @@ export default function LegalPage() {
           </p>
           <p>
             If something you paid for did not arrive on your account, ask on our{' '}
-            <a href={SUPPORT_URL} rel="noreferrer" target="_blank">Discord server</a> with your Minecraft
-            name and your Stripe receipt and we will deliver it. A purchase that is charged back is removed
+            <a href={SUPPORT_URL} rel="noreferrer" target="_blank">Discord server</a> or email{' '}
+            <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> with your Minecraft name and your Stripe
+            receipt and we will deliver it. A purchase that is charged back is removed
             from the account. Nothing here limits rights you have under mandatory consumer law.
           </p>
 
