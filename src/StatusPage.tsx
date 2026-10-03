@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import SiteNav from './SiteNav'
 import {
   emptyStatus,
   overallHealth,
@@ -40,12 +40,7 @@ export default function StatusPage() {
 
   return (
     <div className="status-page">
-      <header className="status-top">
-        <Link className="status-brand" to="/" viewTransition>
-          Astra
-        </Link>
-        <span>Status</span>
-      </header>
+      <SiteNav />
 
       <main className="status-main">
         <p className={`status-overall ${overall}`}>

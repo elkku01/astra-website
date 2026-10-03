@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation, useSearchParams } from 'react-router-dom'
-import { startLauncherDownload } from '../download'
+import { Link, Outlet, useLocation, useSearchParams } from 'react-router-dom'
 import { collectionPrice, ownsCape } from './api'
 import { getCape, isFreeCape, paidCapes, type Cape } from './capes'
 import AccountMenu from './AccountMenu'
+import SiteNav from '../SiteNav'
 import CheckoutModal from './CheckoutModal'
 import AdminDock from './AdminDock'
 import { useSession } from './session'
@@ -11,10 +11,6 @@ import { startCheckout } from './checkout'
 import type { Wing } from './wings'
 import { formatCollectionStock, useCollectionStock } from './collectionStock'
 import './Store.css'
-
-function asset(path: string) {
-  return `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`
-}
 
 export type CheckoutTarget =
   | { kind: 'cape'; cape: Cape }
@@ -107,27 +103,7 @@ export default function StoreLayout() {
 
   return (
     <div className="store-page">
-      <header className="store-nav">
-        <Link className="brand" to="/" viewTransition>
-          <img src={asset('/images/astra-mark.png')} alt="" width={28} height={28} />
-          ASTRA
-        </Link>
-        <nav className="store-links" aria-label="Store">
-          <NavLink to="/store" end viewTransition>
-            Store
-          </NavLink>
-          <NavLink to="/store/my-cosmetics" viewTransition>
-            My Cosmetics
-          </NavLink>
-          <NavLink to="/status" viewTransition>
-            Status
-          </NavLink>
-          <button type="button" className="text-link" onClick={() => void startLauncherDownload()}>
-            Download Client
-          </button>
-        </nav>
-        <AccountMenu open={accountOpen} onOpenChange={setAccountOpen} />
-      </header>
+      <SiteNav extra={<AccountMenu open={accountOpen} onOpenChange={setAccountOpen} />} />
 
       {notice ? (
         <div className="store-banner">

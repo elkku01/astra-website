@@ -1,0 +1,108 @@
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  height: 64px;
+  padding: 0 clamp(16px, 3vw, 40px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(11, 13, 20, 0.88);
+  backdrop-filter: blur(14px);
+}
+
+.site-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.18em;
+  text-decoration: none;
+}
+
+.site-links {
+  display: flex;
+  gap: 4px;
+}
+
+.site-links a {
+  padding: 8px 14px;
+  border-radius: 9px;
+  color: #9aa3b5;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.site-links a:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.site-links a.active {
+  color: #fff;
+  background: rgba(58, 214, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(58, 214, 255, 0.3);
+}
+
+.site-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+
+.site-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: #b9c0ce;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.site-icon:hover {
+  color: #fff;
+  border-color: rgba(88, 101, 242, 0.6);
+  background: rgba(88, 101, 242, 0.18);
+}
+
+.site-download {
+  height: 40px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 11px;
+  background: linear-gradient(180deg, #6ae7ff, #18b4dc);
+  color: #04222c;
+  font: 600 14px Inter, 'Segoe UI', sans-serif;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(32, 196, 232, 0.25);
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.site-download:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 820px) {
+  .site-nav {
+    grid-template-columns: auto 1fr;
+    height: auto;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    row-gap: 8px;
+  }
+
+  .site-links {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    overflow-x: auto;
+  }
+}
