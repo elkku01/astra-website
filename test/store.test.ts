@@ -393,3 +393,15 @@ test('admin can take a player out of the collection count', async () => {
   // Doing it again changes nothing.
   assert.equal((await call('POST', '/api/admin/uncount-sale', { username: 'Alice' }, auth)).body.sold, 0)
 })
+
+test('early access: a name that does not belong to the account is never stored or indexed', async () => {
+  const claim = (uuid: string, username: string) =>
+    call('POST', '/api/internal/early-access', { uuid, username }, { Authorization: `Bearer ${INTERNAL_KEY}` })
+  // Alice's account claims with Bob's name: she gets the wings, but "Bob" still means Bob.
+  const res = await claim(ALICE.uuid, 'Bob')
+  assert.equal(res.body.outcome, 'granted')
+  const byName = await call('GET', '/api/cosmetics/owned?username=Bob')
+  assert.notEqual(String(byName.body.uuid || '').replace(/-/g, ''), ALICE.uuid.replace(/-/g, ''))
+  const alice = await call('GET', `/api/cosmetics/owned?uuid=${ALICE.uuid}`)
+  assert.notEqual(alice.body.username, 'Bob')
+})

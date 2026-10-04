@@ -255,14 +255,15 @@ export class CosmeticsStore {
       const owned = [...new Set([...(previous?.ownedCapeIds || []), ...knownCapeIds(capeIds)])]
       const record: OwnedRecord = {
         uuid: dashed(hex),
-        username: account.username,
+        username: account.username || previous?.username || '',
         ownedCapeIds: owned,
         collection: Boolean(collection || previous?.collection || isFullCollection(owned)),
         ownedWingIds: knownWingIds([...(previous?.ownedWingIds || []), ...(options.wings || [])]),
         ...(previous?.badge ? { badge: previous.badge } : {}),
       }
       await this.storage.put(`player:${hex}`, record)
-      await this.storage.put(`name:${nameKey(account.username)}`, hex)
+      // An empty name means it could not be confirmed: never point a name at this UUID then.
+      if (account.username) await this.storage.put(`name:${nameKey(account.username)}`, hex)
       await this.indexPlayer(hex)
       // Only this purchase counts: wings or a single cloak never use up a collection
       // spot, even for a player who already owns every cloak.
@@ -491,7 +492,16 @@ export class CosmeticsStore {
     if (!hex || !USERNAME_RE.test(username)) throw new HttpError(400, 'Invalid player.')
     let outcome: 'granted' | 'already' | 'full' = 'granted'
     let number: number | null = null
-    await this.grant({ uuid: dashed(hex), username }, [], false, {
+    // The UUID is Mojang-verified by the presence API; the name is checked here too, so a
+    // made-up name can never be pointed at this account (or taken from its real owner).
+    let verifiedName = ''
+    try {
+      const account = await this.resolveAccount(username)
+      if (uuidKey(account.uuid) === hex) verifiedName = account.username
+    } catch {
+      verifiedName = ''
+    }
+    await this.grant({ uuid: dashed(hex), username: verifiedName }, [], false, {
       wings: [EARLY_ACCESS_WING],
       before: async () => {
         await this.numberLegacyEarlyClaims()
