@@ -4,7 +4,7 @@ from PIL import Image
 src = Path(__file__).resolve().parents[1] / "public" / "capes"
 dst = src / "thumbs"
 dst.mkdir(exist_ok=True)
-frames = {"astra": 8, "cross": 24, "astraclient": 12, "aura": 24}
+frames = {"astraclient": 12, "aura": 24}
 
 for png in sorted(src.glob("*.png")):
     im = Image.open(png).convert("RGBA")

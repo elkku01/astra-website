@@ -67,7 +67,6 @@ const DRAFTS: Omit<Cape, 'createdAt'>[] = [
   { id: 'benjamin', name: cloak('Dollar'), price: CLOAK_PRICE, blurb: 'A hundred-dollar bill with Benjamin Franklin.', categories: [], frames: 1, frameTimeMs: 1 },
   { id: 'void', name: cloak('Void'), price: CLOAK_PRICE, blurb: 'A black hole with a glowing orange and purple ring in deep space.', categories: ['popular'], frames: 1, frameTimeMs: 1 },
   { id: 'monster', name: cloak('Monster'), price: CLOAK_PRICE, blurb: 'A silver Monster Energy Zero Sugar Ultra can on black.', categories: [], frames: 1, frameTimeMs: 1 },
-  { id: 'cross', name: cloak('Cross'), price: CLOAK_PRICE, blurb: 'An animated silver cross that shimmers on black.', categories: ['animated', 'popular'], frames: 24, frameTimeMs: 50 },
   { id: 'youdied', name: cloak('You Died'), price: CLOAK_PRICE, blurb: '"You died!" in white pixel letters on black, like the death screen.', categories: [], frames: 1, frameTimeMs: 1 },
   { id: 'default', name: cloak('Default'), price: CLOAK_PRICE, blurb: 'A white silhouette doing the default dance on black.', categories: ['popular'], frames: 1, frameTimeMs: 1 },
   { id: 'tuff', name: cloak('Tuff'), price: CLOAK_PRICE, blurb: '"Wait, I\'m actually tuff" in black on white.', categories: [], frames: 1, frameTimeMs: 1 },
