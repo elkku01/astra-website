@@ -323,7 +323,9 @@
 }
 
 .home-footer-brand img {
-  vertical-align: middle;
+  display: block;
+  height: 40px;
+  width: auto;
 }
 
 .home-footer-brand p {
@@ -371,5 +373,107 @@
 
   .home-footer {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Phones: one centred column, nothing wider than the screen. */
+@media (max-width: 640px) {
+  .home main {
+    width: calc(100% - 32px);
+  }
+
+  .home-hero {
+    gap: 28px;
+    padding: 24px 0 16px;
+  }
+
+  .home-hero > *,
+  .home-split > *,
+  .home-cosmetics > *,
+  .home-faq-grid > *,
+  .home-cards > * {
+    min-width: 0;
+  }
+
+  .home-hero-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .home-logo {
+    display: block;
+    width: min(300px, 86%);
+    margin: 0 auto;
+  }
+
+  .home-lead {
+    margin: 14px auto 22px;
+    font-size: 16px;
+  }
+
+  .home-cta {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .home-cta .home-btn {
+    justify-content: center;
+  }
+
+  .home-cosmetics {
+    margin-top: 28px;
+  }
+
+  .home-cosmetics-art {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .home-cosmetics-art canvas,
+  .home-preview-wait {
+    max-width: 100%;
+    height: auto !important;
+    aspect-ratio: 380 / 320;
+  }
+
+  .home-cosmetics-copy {
+    padding: 8px 20px 28px;
+    text-align: center;
+  }
+
+  .home-cosmetics-copy .home-sub {
+    margin-inline: auto;
+  }
+
+  .home-cloaks {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .home-cloaks img {
+    width: 40px;
+    height: 64px;
+  }
+
+  .home-footer {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .home-footer-brand img {
+    margin: 0 auto;
+  }
+
+  .home-footer-brand p {
+    margin-inline: auto;
+  }
+
+  .home-footer > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 }

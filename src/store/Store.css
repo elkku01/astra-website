@@ -2003,3 +2003,57 @@
 .shop-tile.is-wing .shop-tile-body strong {
   white-space: normal;
 }
+
+/* Phones: the featured banner and the 3D preview never get wider than the screen,
+   and the cosmetics grid shows two per row. */
+@media (max-width: 640px) {
+  .shop-feature {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .shop-feature-copy {
+    padding: 26px 20px 4px;
+    text-align: center;
+    align-items: center;
+  }
+
+  .shop-feature-actions {
+    justify-content: center;
+  }
+
+  .shop-feature-art {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .shop-feature-art .skin-canvas {
+    width: min(100%, 360px) !important;
+    height: auto !important;
+    aspect-ratio: 420 / 400;
+  }
+
+  .detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .detail-grid > * {
+    min-width: 0;
+  }
+
+  .preview-stage {
+    overflow: hidden;
+  }
+
+  .preview-stage .skin-canvas {
+    width: min(100%, 400px) !important;
+    height: auto !important;
+    aspect-ratio: 5 / 7;
+  }
+
+  .shop-grid,
+  .shop-grid.is-wings {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}

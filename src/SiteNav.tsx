@@ -22,8 +22,7 @@ export default function SiteNav({ extra }: { extra?: ReactNode }) {
   return (
     <header className="site-nav">
       <Link className="site-brand" to="/" viewTransition>
-        <img src={asset('/images/astra-mark.png')} alt="" width={28} height={28} />
-        ASTRA
+        <img src={asset('/images/astra-wordmark.png')} alt="Astra client" width={55} height={36} />
       </Link>
       <nav className="site-links" aria-label="Primary">
         <NavLink to="/" end viewTransition>

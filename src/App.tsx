@@ -216,8 +216,7 @@ function App() {
 
       <footer className="home-footer">
         <div className="home-footer-brand">
-          <img src={asset('/images/astra-mark.png')} alt="" width={24} height={24} />
-          <span>ASTRA</span>
+          <img src={asset('/images/astra-wordmark.png')} alt="Astra client" width={61} height={40} />
           <p>Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</p>
         </div>
         <div>

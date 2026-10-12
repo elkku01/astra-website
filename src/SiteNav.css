@@ -12,6 +12,13 @@
   backdrop-filter: blur(14px);
 }
 
+.site-brand img {
+  display: block;
+  height: 36px;
+  width: auto;
+  filter: drop-shadow(0 0 8px rgba(58, 214, 255, 0.22));
+}
+
 .site-brand {
   display: flex;
   align-items: center;
