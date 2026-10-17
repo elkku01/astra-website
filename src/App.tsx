@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { startLauncherDownload } from './download'
+import { FALLBACK_VERSION, fetchLatestVersion, startLauncherDownload } from './download'
 import SiteNav, { DISCORD_URL, DiscordIcon } from './SiteNav'
 import './App.css'
 import './Home.css'
@@ -11,8 +11,6 @@ const WingPreview = lazy(() => import('./store/WingPreview'))
 function asset(path: string) {
   return `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`
 }
-
-const LAUNCHER_VERSION = '0.3.17'
 
 const SHOTS = [
   { id: 'home', label: 'Home', src: asset('/images/screenshots/v2-home.jpg') },
@@ -47,6 +45,26 @@ const INSTANCE_POINTS = [
 ]
 
 const CLOAK_ROW = ['torii', 'gojo', 'void', 'miku', 'aura', 'monster']
+
+/** Measured on one PC: Minecraft 1.8.9, same world and settings in both clients. */
+const PROOF = [
+  {
+    label: 'Average FPS',
+    better: 'higher is better',
+    unit: '',
+    astra: 2200,
+    lunar: 1500,
+    result: '+47% FPS'
+  },
+  {
+    label: 'Until the Minecraft window opens',
+    better: 'lower is better',
+    unit: ' s',
+    astra: 7,
+    lunar: 20,
+    result: 'Almost 3× faster'
+  }
+]
 
 const FAQ = [
   {
@@ -89,7 +107,19 @@ function WindowsIcon() {
 function App() {
   const [shot, setShot] = useState(0)
   const [open, setOpen] = useState<number | null>(0)
+  const [version, setVersion] = useState(FALLBACK_VERSION)
   const { hash } = useLocation()
+
+  // The newest release, so the page never shows an old version number.
+  useEffect(() => {
+    let live = true
+    void fetchLatestVersion().then((latest) => {
+      if (live) setVersion(latest)
+    })
+    return () => {
+      live = false
+    }
+  }, [])
 
   // Coming from another page (e.g. /#features), the router does not scroll to the section by itself.
   useEffect(() => {
@@ -119,7 +149,23 @@ function App() {
                 Browse cosmetics
               </Link>
             </div>
-            <p className="home-meta">v{LAUNCHER_VERSION} · Windows 10/11 · Free</p>
+            <a className="home-proof-teaser" href="#performance">
+              <span>
+                <strong>+47%</strong> FPS
+              </span>
+              <span>
+                <strong>7 s</strong> to launch
+              </span>
+              <em>vs Lunar Client, same PC</em>
+            </a>
+            <p className="home-meta">v{version} · Windows 10/11 · Free</p>
+            <p className="home-meta">
+              On Mac or Linux? It's Windows only for now.{' '}
+              <a href={DISCORD_URL} target="_blank" rel="noreferrer">
+                Join the Discord
+              </a>{' '}
+              for news.
+            </p>
           </div>
           <div className="home-shot">
             <img src={SHOTS[shot].src} alt={`Astra launcher: ${SHOTS[shot].label}`} />
@@ -150,6 +196,47 @@ function App() {
               <p>{card.body}</p>
             </article>
           ))}
+        </section>
+
+        <section className="home-proof" id="performance">
+          <p className="home-kicker">Performance</p>
+          <h2>More FPS. Faster launches.</h2>
+          <p className="home-sub">Astra against Lunar Client on the same PC, in the same 1.8.9 world with the same settings.</p>
+          <div className="home-proof-grid">
+            {PROOF.map((item) => {
+              const max = Math.max(item.astra, item.lunar)
+              return (
+                <article key={item.label} className="home-proof-card">
+                  <header>
+                    <h3>{item.label}</h3>
+                    <span>{item.better}</span>
+                  </header>
+                  <div className="home-proof-row is-astra">
+                    <span className="home-proof-name">Astra</span>
+                    <span className="home-proof-track">
+                      <span style={{ width: `${(item.astra / max) * 100}%` }} />
+                    </span>
+                    <strong>
+                      {item.astra.toLocaleString('en-US')}
+                      {item.unit}
+                    </strong>
+                  </div>
+                  <div className="home-proof-row">
+                    <span className="home-proof-name">Lunar Client</span>
+                    <span className="home-proof-track">
+                      <span style={{ width: `${(item.lunar / max) * 100}%` }} />
+                    </span>
+                    <strong>
+                      {item.lunar.toLocaleString('en-US')}
+                      {item.unit}
+                    </strong>
+                  </div>
+                  <p className="home-proof-result">{item.result}</p>
+                </article>
+              )
+            })}
+          </div>
+          <p className="home-proof-note">Measured by us on one Windows PC. Your numbers depend on your hardware.</p>
         </section>
 
         <section className="home-split">
@@ -186,7 +273,7 @@ function App() {
             <p className="home-sub">Try them on your own skin, exactly as they look in game. Other Astra players see them too.</p>
             <div className="home-cloaks">
               {CLOAK_ROW.map((id) => (
-                <Link key={id} to={`/store/cape/${id}`} viewTransition aria-label={`"${id}" cloak`}>
+                <Link key={id} to={`/store/cape/${id}`} viewTransition aria-label={`${id.charAt(0).toUpperCase()}${id.slice(1)} Cloak`}>
                   <img src={asset(`/capes/thumbs/${id}.png`)} alt="" loading="lazy" />
                 </Link>
               ))}

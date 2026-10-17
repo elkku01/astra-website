@@ -15,9 +15,9 @@ export const CLOAK_PRICE = 3.99
 export const COLLECTION_LAUNCH_PRICE = 8.99
 export const COLLECTION_LIMIT = 100
 
-/** Cloak names read like: "torii" cloak (the name in quotes, lower case). */
+/** Cloak names read like a product: "Torii Cloak". */
 function cloak(label: string): string {
-  return `"${label.toLowerCase()}" cloak`
+  return `${label} Cloak`
 }
 
 const ADDED: Record<string, string> = {

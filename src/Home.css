@@ -477,3 +477,160 @@
     align-items: center;
   }
 }
+
+/* ── Performance: Astra next to Lunar Client, measured on the same PC ── */
+.home-proof-teaser {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 16px;
+  margin-top: 18px;
+  padding: 10px 14px;
+  border: 1px solid rgba(58, 214, 255, 0.22);
+  border-radius: 12px;
+  background: rgba(58, 214, 255, 0.06);
+  color: #c9d2e3;
+  font-size: 14px;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.home-proof-teaser:hover {
+  border-color: rgba(58, 214, 255, 0.5);
+  background: rgba(58, 214, 255, 0.1);
+}
+
+.home-proof-teaser strong {
+  color: #3ad6ff;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.home-proof-teaser em {
+  color: #6b7385;
+  font-size: 12px;
+  font-style: normal;
+}
+
+.home-meta a {
+  color: #9aa3b5;
+}
+
+.home-meta a:hover {
+  color: #fff;
+}
+
+.home-proof {
+  padding: 80px 0 0;
+  scroll-margin-top: 80px;
+}
+
+.home-proof-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.home-proof-card {
+  padding: 22px 22px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 18px;
+  background: #131722;
+}
+
+.home-proof-card header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.home-proof-card h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.home-proof-card header span {
+  color: #6b7385;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.home-proof-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 64px;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  color: #9aa3b5;
+  font-size: 14px;
+}
+
+.home-proof-row strong {
+  color: #c9d2e3;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.home-proof-track {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.home-proof-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #4a5266;
+}
+
+.home-proof-row.is-astra {
+  color: #fff;
+}
+
+.home-proof-row.is-astra strong {
+  color: #3ad6ff;
+}
+
+.home-proof-row.is-astra .home-proof-track span {
+  background: linear-gradient(90deg, #14b8e0, #3ad6ff);
+}
+
+.home-proof-result {
+  margin: 16px 0 0;
+  color: #3ad6ff;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.home-proof-note {
+  margin: 12px 0 0;
+  color: #6b7385;
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .home-proof-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .home-proof-grid > * {
+    min-width: 0;
+  }
+
+  .home-proof-row {
+    grid-template-columns: 84px minmax(0, 1fr) 52px;
+    gap: 8px;
+  }
+
+  .home-proof-card header {
+    flex-direction: column;
+    gap: 2px;
+  }
+}

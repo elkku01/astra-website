@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { adminLogin, isAdminAuthed } from './admin'
 
 export default function AdminDock() {
@@ -9,6 +9,7 @@ export default function AdminDock() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const authed = isAdminAuthed()
+  const { search } = useLocation()
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
@@ -25,6 +26,9 @@ export default function AdminDock() {
       setBusy(false)
     }
   }
+
+  // Visitors never see it: it shows when signed in as admin, or on a store page opened with ?admin.
+  if (!authed && !new URLSearchParams(search).has('admin')) return null
 
   if (authed) {
     return (
