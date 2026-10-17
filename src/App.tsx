@@ -50,7 +50,6 @@ const CLOAK_ROW = ['torii', 'gojo', 'void', 'miku', 'aura', 'monster']
 const PROOF = [
   {
     label: 'Average FPS',
-    better: 'higher is better',
     unit: '',
     astra: 2200,
     lunar: 1500,
@@ -58,7 +57,6 @@ const PROOF = [
   },
   {
     label: 'Until the Minecraft window opens',
-    better: 'lower is better',
     unit: ' s',
     astra: 7,
     lunar: 20,
@@ -209,7 +207,6 @@ function App() {
                 <article key={item.label} className="home-proof-card">
                   <header>
                     <h3>{item.label}</h3>
-                    <span>{item.better}</span>
                   </header>
                   <div className="home-proof-row is-astra">
                     <span className="home-proof-name">Astra</span>
