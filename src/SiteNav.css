@@ -93,6 +93,16 @@
   transition: filter 0.15s ease, transform 0.15s ease;
 }
 
+.site-download.is-locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(62, 196, 245, 0.3);
+  background: rgba(62, 196, 245, 0.1);
+  color: #bfefff;
+  box-shadow: none;
+}
+
 .site-download:hover {
   filter: brightness(1.06);
   transform: translateY(-1px);

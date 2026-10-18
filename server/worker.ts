@@ -1,4 +1,5 @@
 import { CosmeticsStore, importLegacyStore, type StoreStorage } from './storeCore.ts'
+import { handleLaunch } from './launch.ts'
 
 export interface Env {
   STORE_DB: DurableObjectNamespace
@@ -66,6 +67,9 @@ export class StoreDB {
 
 export default {
   async fetch(request: Request, env: Env) {
+    // The launch countdown and the gated installer download (no database needed).
+    const launch = await handleLaunch(request, ALLOWED_ORIGINS)
+    if (launch) return launch
     return env.STORE_DB.get(env.STORE_DB.idFromName('astra-store')).fetch(request)
   },
 }

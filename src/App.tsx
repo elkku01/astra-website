@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { FALLBACK_VERSION, fetchLatestVersion, startLauncherDownload } from './download'
+import LaunchCountdown from './LaunchCountdown'
 import SiteNav, { DISCORD_URL, DiscordIcon } from './SiteNav'
 import './App.css'
 import './Home.css'
@@ -139,10 +140,12 @@ function App() {
               and cosmetics.
             </p>
             <div className="home-cta">
-              <button type="button" className="home-btn primary" onClick={() => void startLauncherDownload()}>
-                <WindowsIcon />
-                Download for Windows
-              </button>
+              <LaunchCountdown>
+                <button type="button" className="home-btn primary" onClick={() => void startLauncherDownload()}>
+                  <WindowsIcon />
+                  Download for Windows
+                </button>
+              </LaunchCountdown>
               <Link className="home-btn ghost" to="/store" viewTransition>
                 Browse cosmetics
               </Link>

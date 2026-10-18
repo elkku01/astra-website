@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { startLauncherDownload } from './download'
+import { useLaunchClock } from './launch'
 import './SiteNav.css'
 
 export const DISCORD_URL = 'https://discord.gg/byKpped2K'
@@ -19,6 +20,7 @@ export function DiscordIcon() {
 
 /** One top bar for every page: logo home, the same links, Discord and Download. */
 export default function SiteNav({ extra }: { extra?: ReactNode }) {
+  const { open } = useLaunchClock()
   return (
     <header className="site-nav">
       <Link className="site-brand" to="/" viewTransition>
@@ -40,9 +42,19 @@ export default function SiteNav({ extra }: { extra?: ReactNode }) {
         <a className="site-icon" href={DISCORD_URL} target="_blank" rel="noreferrer" aria-label="Astra Discord" title="Discord">
           <DiscordIcon />
         </a>
-        <button type="button" className="site-download" onClick={() => void startLauncherDownload()}>
-          Download
-        </button>
+        {open ? (
+          <button type="button" className="site-download" onClick={() => void startLauncherDownload()}>
+            Download
+          </button>
+        ) : (
+          <button type="button" className="site-download is-locked" onClick={() => void startLauncherDownload()} title="Astra Client launches 24 October, 15:00 Finland time">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+              <rect x="5" y="11" width="14" height="10" rx="2.5" />
+              <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+            </svg>
+            Out Oct 24
+          </button>
+        )}
       </div>
     </header>
   )

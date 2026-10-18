@@ -1,5 +1,6 @@
 import { storeApiUrl } from './store/storeApi'
 import { UPDATES_REPO } from './download'
+import { launchOpen } from './launch'
 
 export type Health = 'checking' | 'operational' | 'degraded' | 'unavailable'
 
@@ -41,6 +42,8 @@ async function checkWebsite(): Promise<Health> {
 }
 
 async function checkDownloads(): Promise<Health> {
+  // Before launch the releases are private: check the server that will hand out the download.
+  if (!launchOpen()) return (await probe(storeApiUrl('/api/launch'))) ? 'operational' : 'unavailable'
   if (!UPDATES_REPO) return 'unavailable'
   const ok = await probe(
     `https://api.github.com/repos/${UPDATES_REPO}/releases/latest`,

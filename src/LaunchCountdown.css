@@ -1,0 +1,261 @@
+.lc {
+  position: relative;
+  width: min(470px, 100%);
+  padding: 18px 20px 16px;
+  border: 1px solid rgba(62, 196, 245, 0.18);
+  border-radius: 18px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(62, 196, 245, 0.1), transparent 60%),
+    rgba(255, 255, 255, 0.03);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: lc-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.lc-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 14px;
+  color: #c9d3e3;
+  font: 600 13px Inter, 'Segoe UI', sans-serif;
+  letter-spacing: 0.01em;
+}
+
+.lc-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 0 0 rgba(62, 196, 245, 0.6);
+  animation: lc-pulse 2s ease-out infinite;
+}
+
+.lc-units {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.lc-unit {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+
+.lc-value {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  width: 100%;
+  padding: 10px 0 9px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 18px rgba(0, 0, 0, 0.25);
+}
+
+.lc-digit {
+  position: relative;
+  display: inline-block;
+  width: 0.62em;
+  height: 1.15em;
+  overflow: hidden;
+  color: #fff;
+  font: 700 38px var(--display);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.lc-digit > span {
+  position: absolute;
+  inset: 0;
+}
+
+.lc-digit-in {
+  animation: lc-roll-in 0.42s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+
+.lc-digit-out {
+  animation: lc-roll-out 0.42s cubic-bezier(0.5, 0, 0.75, 0) both;
+}
+
+.lc-label {
+  color: #7d8799;
+  font: 600 11px Inter, 'Segoe UI', sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lc-sep {
+  padding-top: 13px;
+  color: rgba(62, 196, 245, 0.55);
+  font: 700 26px var(--display);
+  animation: lc-blink 1s steps(1) infinite;
+}
+
+.lc-local {
+  margin: 12px 0 0;
+  color: #6b7385;
+  font-size: 12.5px;
+}
+
+/* ---- Unlock: the clock lifts away and light opens up, then the download button arrives ---- */
+
+.lc.is-unlocking {
+  animation: lc-glow 1.7s ease both;
+}
+
+.lc.is-unlocking .lc-title,
+.lc.is-unlocking .lc-local {
+  animation: lc-fade 0.5s ease both;
+}
+
+.lc.is-unlocking .lc-unit,
+.lc.is-unlocking .lc-sep {
+  animation: lc-lift 0.7s cubic-bezier(0.5, 0, 0.2, 1) both;
+}
+
+.lc.is-unlocking .lc-units > :nth-child(3) { animation-delay: 0.06s; }
+.lc.is-unlocking .lc-units > :nth-child(5) { animation-delay: 0.12s; }
+.lc.is-unlocking .lc-units > :nth-child(7) { animation-delay: 0.18s; }
+
+.lc-burst {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.lc-ring {
+  grid-area: 1 / 1;
+  width: 40px;
+  height: 40px;
+  border: 2px solid rgba(106, 231, 255, 0.9);
+  border-radius: 50%;
+  opacity: 0;
+  animation: lc-ring 1.1s cubic-bezier(0.15, 0.7, 0.3, 1) 0.45s both;
+}
+
+.lc-ring-2 {
+  border-color: rgba(106, 231, 255, 0.5);
+  animation-delay: 0.6s;
+}
+
+.lc-spark {
+  grid-area: 1 / 1;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #8ef0ff;
+  box-shadow: 0 0 10px rgba(106, 231, 255, 0.9);
+  opacity: 0;
+  animation: lc-spark 0.9s cubic-bezier(0.1, 0.7, 0.3, 1) 0.5s both;
+}
+
+.lc-open {
+  display: contents;
+}
+
+.lc-open > * {
+  animation: lc-arrive 0.7s cubic-bezier(0.2, 1.3, 0.35, 1) both;
+}
+
+.lc-open > .home-btn.primary {
+  position: relative;
+  overflow: hidden;
+}
+
+.lc-open > .home-btn.primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.55) 50%, transparent 70%);
+  transform: translateX(-120%);
+  animation: lc-shine 1.1s ease 0.45s both;
+}
+
+@keyframes lc-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes lc-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(62, 196, 245, 0.55); }
+  70%, 100% { box-shadow: 0 0 0 9px rgba(62, 196, 245, 0); }
+}
+
+@keyframes lc-blink {
+  0%, 60% { opacity: 1; }
+  61%, 100% { opacity: 0.35; }
+}
+
+@keyframes lc-roll-in {
+  from { transform: translateY(70%); opacity: 0; filter: blur(3px); }
+  to { transform: none; opacity: 1; filter: none; }
+}
+
+@keyframes lc-roll-out {
+  from { transform: none; opacity: 1; }
+  to { transform: translateY(-70%); opacity: 0; filter: blur(3px); }
+}
+
+@keyframes lc-fade {
+  to { opacity: 0; }
+}
+
+@keyframes lc-lift {
+  to { transform: translateY(-14px) scale(0.92); opacity: 0; filter: blur(4px); }
+}
+
+@keyframes lc-glow {
+  0% { border-color: rgba(62, 196, 245, 0.18); }
+  45% { border-color: rgba(106, 231, 255, 0.9); box-shadow: 0 0 60px rgba(62, 196, 245, 0.45), inset 0 0 30px rgba(62, 196, 245, 0.2); }
+  100% { border-color: rgba(62, 196, 245, 0); box-shadow: 0 0 0 rgba(62, 196, 245, 0); background: transparent; }
+}
+
+@keyframes lc-ring {
+  0% { transform: scale(0.2); opacity: 1; }
+  100% { transform: scale(9); opacity: 0; }
+}
+
+@keyframes lc-spark {
+  0% { transform: rotate(var(--a)) translateX(0) scale(1); opacity: 1; }
+  100% { transform: rotate(var(--a)) translateX(150px) scale(0.2); opacity: 0; }
+}
+
+@keyframes lc-arrive {
+  from { opacity: 0; transform: translateY(10px) scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes lc-shine {
+  to { transform: translateX(120%); }
+}
+
+/* Clicking a locked Download button elsewhere on the page points here. */
+.lc.is-pinged {
+  animation: lc-ping 0.9s ease;
+}
+
+@keyframes lc-ping {
+  0%, 100% { border-color: rgba(62, 196, 245, 0.18); }
+  30% { border-color: rgba(106, 231, 255, 0.95); box-shadow: 0 0 40px rgba(62, 196, 245, 0.35); }
+}
+
+@media (max-width: 520px) {
+  .lc { padding: 14px 12px 12px; }
+  .lc-digit { font-size: 28px; }
+  .lc-sep { padding-top: 9px; font-size: 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lc, .lc *, .lc-open > *, .lc-open > *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+  }
+}

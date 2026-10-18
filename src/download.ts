@@ -1,22 +1,13 @@
 /**
- * Windows installer download.
- *
- * The site serves a copy from /AstraClient-Setup.exe (see public/).
- * After you publish with `npm run enroll` in the launcher repo, set
- * VITE_UPDATES_REPO to "your-github-user/astra-client-updates" so the
- * button always fetches the latest GitHub Release .exe.
+ * Windows installer download. Every Download button goes through the store server's
+ * /api/download, which only hands out the installer from launch on (server/launch.ts).
  */
+import { launchOpen } from './launch'
+import { storeApiUrl } from './store/storeApi'
+
 export const UPDATES_REPO = String(
   import.meta.env.VITE_UPDATES_REPO || 'elkku01/astra-client-updates'
 ).trim()
-
-export const BUNDLED_SETUP_PATH = '/AstraClient-Setup.exe'
-
-export const LAUNCHER_DOWNLOAD_URL: string = UPDATES_REPO
-  ? `https://github.com/${UPDATES_REPO}/releases/latest`
-  : BUNDLED_SETUP_PATH
-
-export const DOWNLOAD_LABEL = 'Download for Windows'
 
 /** Shown until the latest release is known (and if GitHub cannot be reached). */
 export const FALLBACK_VERSION = '0.3.30'
@@ -54,51 +45,23 @@ export function fetchLatestVersion(): Promise<string> {
   }
   return latestVersion
 }
-export const DOWNLOAD_META = 'Astra Setup · includes launcher + client · Java installs on Launch'
-
-interface GitHubAsset {
-  name?: string
-  browser_download_url?: string
-}
-
-interface GitHubRelease {
-  assets?: GitHubAsset[]
+/** Before launch: show the countdown (scrolling to it, or opening the home page). */
+function pointToCountdown() {
+  const countdown = document.getElementById('launch-countdown')
+  if (!countdown) {
+    window.location.assign(`${import.meta.env.BASE_URL}#top`)
+    return
+  }
+  countdown.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  countdown.classList.remove('is-pinged')
+  void countdown.offsetWidth
+  countdown.classList.add('is-pinged')
 }
 
 export async function startLauncherDownload(): Promise<void> {
-  const url = await resolveInstallerUrl()
-  const link = document.createElement('a')
-  link.href = url
-  link.rel = 'noopener'
-  if (url.startsWith('/') || url.endsWith('.exe')) {
-    link.download = 'AstraClient-Setup.exe'
+  if (!launchOpen()) {
+    pointToCountdown()
+    return
   }
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-}
-
-async function resolveInstallerUrl(): Promise<string> {
-  if (UPDATES_REPO) {
-    try {
-      const response = await fetch(
-        `https://api.github.com/repos/${UPDATES_REPO}/releases/latest`,
-        { headers: { Accept: 'application/vnd.github+json' } }
-      )
-      if (response.ok) {
-        const release = (await response.json()) as GitHubRelease
-        const asset = (release.assets || []).find(
-          (item) =>
-            typeof item.name === 'string' &&
-            /^AstraClient-Setup-.*\.exe$/i.test(item.name) &&
-            !item.name.toLowerCase().endsWith('.blockmap') &&
-            item.browser_download_url
-        )
-        if (asset?.browser_download_url) return asset.browser_download_url
-      }
-    } catch {
-      // Use the bundled installer if GitHub is unreachable.
-    }
-  }
-  return BUNDLED_SETUP_PATH
+  window.location.assign(storeApiUrl('/api/download'))
 }
