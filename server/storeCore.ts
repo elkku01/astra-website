@@ -12,7 +12,10 @@
  *   pi:<payment intent>   checkout id, to find the order again on refund/dispute
  *   sale:<uuidhex>        1: counted toward the collection limit (one per player)
  *   meta:collectionSold   number
- *   session:<token>       admin session expiry (ms)
+ *   session:<sha256>      admin session expiry (ms), keyed by the token's hash
+ *   intent:<checkout id>  what a checkout must cost: { cents, currency, collection }
+ *   meta:holds            open collection checkouts: { <checkout id>: { until, uuid, ip } }
+ *   flagged:<checkout id> a paid session that did not match its intent (never granted)
  */
 import { knownBadge } from '../src/store/badgeIds.ts'
 import { isFullCollection, knownCapeIds } from '../src/store/fulfillment.ts'
@@ -84,6 +87,12 @@ const USERNAME_RE = /^[A-Za-z0-9_]{3,16}$/
 const SESSION_ID_RE = /^cs_(test|live)_[A-Za-z0-9]{10,200}$/
 const SESSION_MS = 4 * 60 * 60 * 1000
 const MAX_BODY = 32 * 1024
+/** Stripe's shortest checkout lifetime: a collection spot is held this long while the buyer pays. */
+const HOLD_MS = 30 * 60 * 1000
+const MAX_HOLDS_PER_IP = 3
+
+type Intent = { cents: number; currency: string; collection: boolean }
+type Hold = { until: number; uuid: string; ip: string }
 
 export function uuidKey(uuid = ''): string {
   const hex = String(uuid).replace(/-/g, '').toLowerCase()
@@ -126,22 +135,27 @@ export class StoreMutex {
 
 const rateTables = new Map<string, Map<string, { count: number; resetAt: number }>>()
 
-function limited(table: string, key: string, max: number, windowMs: number): boolean {
+/** Counts a hit and says whether the limit is passed. With count=false it only checks. */
+function limited(table: string, key: string, max: number, windowMs: number, count = true): boolean {
   let rows = rateTables.get(table)
   if (!rows) rateTables.set(table, (rows = new Map()))
   const now = Date.now()
   const current = rows.get(key)
   if (!current || current.resetAt < now) {
+    if (!count) return false
     if (rows.size > 10_000) for (const [k, v] of rows) if (v.resetAt < now) rows.delete(k)
     rows.set(key, { count: 1, resetAt: now + windowMs })
     return false
   }
+  if (!count) return current.count >= max
   current.count += 1
   return current.count > max
 }
 
-export function resetRateLimits() {
-  rateTables.clear()
+/** Tests: clears every limit, or only the named tables. */
+export function resetRateLimits(tables?: string[]) {
+  if (!tables) rateTables.clear()
+  else for (const table of tables) rateTables.delete(table)
 }
 
 async function sha256(value: string) {
@@ -153,6 +167,10 @@ async function passwordsMatch(given: string, expected: string) {
   let out = 0
   for (let i = 0; i < a.length; i += 1) out |= a[i] ^ b[i]
   return out === 0
+}
+
+async function tokenHash(token: string) {
+  return [...(await sha256(token))].map((byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
 function randomToken() {
@@ -307,7 +325,25 @@ export class CosmeticsStore {
   async collectionStock() {
     const cap = this.config.collectionLimit > 0 ? this.config.collectionLimit : 100
     const sold = Math.min(Number(await this.storage.get<number>('meta:collectionSold')) || 0, cap)
-    return { limit: cap, sold, remaining: Math.max(0, cap - sold) }
+    const held = Object.keys(await this.activeHolds()).length
+    return { limit: cap, sold, remaining: Math.max(0, cap - sold - held) }
+  }
+
+  /** Open collection checkouts that still hold a spot (expired ones are left out). */
+  private async activeHolds(): Promise<Record<string, Hold>> {
+    const all = (await this.storage.get<Record<string, Hold>>('meta:holds')) || {}
+    const now = Date.now()
+    const live: Record<string, Hold> = {}
+    for (const [id, hold] of Object.entries(all)) if (Number(hold?.until) > now) live[id] = hold
+    return live
+  }
+
+  // Must run inside the mutex.
+  private async releaseHold(sessionId: string) {
+    const all = (await this.storage.get<Record<string, Hold>>('meta:holds')) || {}
+    if (!(sessionId in all)) return
+    delete all[sessionId]
+    await this.storage.put('meta:holds', all)
   }
 
   /** Takes a player out of the collection count (for test purchases or mistakes). Admin only. */
@@ -341,7 +377,7 @@ export class CosmeticsStore {
    * Starts a Stripe Checkout (Managed Payments) for a verified Minecraft
    * account. Prices come from the catalog on the server, never the browser.
    */
-  async checkout(username: string, capeIds: string[], collection: boolean, wingIds: string[] = []) {
+  async checkout(username: string, capeIds: string[], collection: boolean, wingIds: string[] = [], ip = 'unknown') {
     if (!this.config.stripeSecretKey) {
       throw new HttpError(503, 'Purchases are paused for a moment while we move to a new payment provider. Please try again soon.')
     }
@@ -370,6 +406,10 @@ export class CosmeticsStore {
       if (owned.collection) throw new HttpError(409, 'You already own the entire collection.')
       const stock = await this.collectionStock()
       if (stock.remaining <= 0) throw new HttpError(409, 'The launch collection is sold out.')
+      const holds = Object.values(await this.activeHolds())
+      if (holds.filter((hold) => hold.ip === ip && hold.uuid !== hex).length >= MAX_HOLDS_PER_IP) {
+        throw new HttpError(429, 'Too many open checkouts. Finish or wait for one first.')
+      }
       ids = [...paid]
       lines = [{
         name: 'Astra Cloaks: Entire Collection',
@@ -390,8 +430,11 @@ export class CosmeticsStore {
     }
     const site = this.config.siteUrl.replace(/\/+$/, '')
     if (!/^https?:\/\//.test(site)) throw new HttpError(503, 'Store checkout is not configured.')
+    const cents = lines.reduce((sum, line) => sum + line.amountCents, 0)
     const form = checkoutForm({
       lines,
+      // Short-lived, so a collection spot held for an unpaid checkout comes back quickly.
+      expiresAt: Math.floor((Date.now() + HOLD_MS) / 1000),
       successUrl: `${site}/store/checkout?session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${site}/store/checkout?cancelled=1`,
       clientReferenceId: hex,
@@ -404,15 +447,32 @@ export class CosmeticsStore {
       },
     })
     const session = (await this.stripe('POST', '/checkout/sessions', form).catch((error: unknown) => {
-      throw new HttpError(502, error instanceof Error ? error.message : 'Could not start checkout.')
+      // Stripe's own message stays in the server log; the buyer gets a plain one.
+      console.error('Stripe checkout failed:', error instanceof Error ? error.message : error)
+      throw new HttpError(502, 'Could not start checkout. Try again in a moment.')
     })) as unknown as CheckoutSession
-    if (!session.url) throw new HttpError(502, 'Stripe did not return a checkout link.')
+    if (!session.url || !SESSION_ID_RE.test(String(session.id || ''))) {
+      throw new HttpError(502, 'Could not start checkout. Try again in a moment.')
+    }
+    // What this checkout must cost: a paid session that does not match is never granted.
+    await this.storage.put(`intent:${session.id}`, { cents, currency: 'usd', collection } satisfies Intent)
+    if (collection) {
+      await this.mutex.run(async () => {
+        const all = await this.activeHolds()
+        // One open collection checkout per player: a new one replaces the old hold.
+        for (const [id, hold] of Object.entries(all)) if (hold.uuid === hex) delete all[id]
+        all[session.id] = { until: Date.now() + HOLD_MS, uuid: hex, ip }
+        await this.storage.put('meta:holds', all)
+      })
+    }
     return { url: session.url, id: session.id }
   }
 
   /** Grants a paid Checkout Session exactly once (safe to call from webhook and return page). */
   async fulfill(session: CheckoutSession) {
     if (session.payment_status !== 'paid') return { complete: false, granted: [] as string[] }
+    if (!SESSION_ID_RE.test(String(session.id || ''))) throw new HttpError(400, 'Checkout is missing its id.')
+    if (await this.storage.get(`flagged:${session.id}`)) return { complete: false, granted: [] as string[], flagged: true }
     const meta = session.metadata || {}
     const hex = uuidKey(meta.uuid || '')
     const username = String(meta.username || '')
@@ -425,6 +485,14 @@ export class CosmeticsStore {
     const key = `order:${session.id}`
     const existing = await this.storage.get<Order>(key)
     if (existing) return { complete: true, granted: [...existing.capes, ...(existing.wings || [])], uuid: existing.uuid }
+    // Money check: the session must be a USD payment of at least what this checkout costs.
+    const problem = await this.paymentProblem(session, ids, wings, collection)
+    if (problem) {
+      await this.storage.put(`flagged:${session.id}`, { uuid: hex, username, problem, at: Date.now() })
+      console.error(`Checkout ${session.id} not granted: ${problem}`)
+      await this.mutex.run(() => this.releaseHold(session.id))
+      return { complete: false, granted: [] as string[], flagged: true }
+    }
     const pi = typeof session.payment_intent === 'string' ? session.payment_intent : ''
     let duplicate = false
     await this.grant({ uuid: dashed(hex), username }, ids, collection || isFullCollection(ids), {
@@ -437,11 +505,36 @@ export class CosmeticsStore {
         }
         await this.storage.put(key, { uuid: hex, username, capes: ids, wings, collection, pi, at: Date.now() } satisfies Order)
         if (pi) await this.storage.put(`pi:${pi}`, session.id)
+        await this.releaseHold(session.id)
       },
     }).catch((error: unknown) => {
       if (!(error instanceof DuplicateOrder)) throw error
     })
     return { complete: true, granted: [...ids, ...wings], uuid: dashed(hex), duplicate }
+  }
+
+  /**
+   * Why a paid session must not be granted, or '' when it is fine. Compares with the intent
+   * stored when the checkout was made (or, for older checkouts, today's catalog prices).
+   */
+  private async paymentProblem(session: CheckoutSession, capes: string[], wings: string[], collection: boolean) {
+    if (session.mode && session.mode !== 'payment') return `mode ${session.mode}`
+    const currency = String(session.currency || '').toLowerCase()
+    if (currency !== 'usd') return `currency ${currency || 'missing'}`
+    const paid = Number(session.amount_total)
+    if (session.amount_total === null || session.amount_total === undefined || !Number.isFinite(paid)) return 'amount missing'
+    const intent = await this.storage.get<Intent>(`intent:${session.id}`)
+    let expected = intent ? Number(intent.cents) : 0
+    if (!intent) {
+      if (collection) expected = Math.round(COLLECTION_LAUNCH_PRICE * 100)
+      else {
+        for (const id of capes) expected += Math.round((CAPES.find((cape) => cape.id === id)?.price || 0) * 100)
+        for (const id of wings) expected += Math.round((WINGS.find((wing) => wing.id === id)?.price || 0) * 100)
+      }
+    }
+    if (!(expected > 0)) return 'nothing to sell'
+    if (paid < expected) return `paid ${paid} < ${expected}`
+    return ''
   }
 
   /** Return-page check: the webhook usually got there first; if not, ask Stripe directly. */
@@ -466,6 +559,12 @@ export class CosmeticsStore {
     const object = ((event.data as { object?: unknown } | undefined)?.object || {}) as Record<string, unknown>
     if (type === 'checkout.session.completed' || type === 'checkout.session.async_payment_succeeded') {
       return { received: true, ...(await this.fulfill(object as unknown as CheckoutSession)) }
+    }
+    // An unpaid checkout closed: its collection spot goes back on sale.
+    if (type === 'checkout.session.expired' || type === 'checkout.session.async_payment_failed') {
+      const id = String(object.id || '')
+      if (SESSION_ID_RE.test(id)) await this.mutex.run(() => this.releaseHold(id))
+      return { received: true, released: id }
     }
     // Money went back (full refund) or is being disputed: take the cloaks back.
     const fullRefund = type === 'charge.refunded' && object.refunded === true
@@ -586,17 +685,26 @@ export class CosmeticsStore {
     if (!expected || expected.length < 8) {
       throw new HttpError(503, 'Admin password is not configured on this server.')
     }
-    if (!(await passwordsMatch(password, expected))) throw new HttpError(401, 'Wrong password.')
+    // Wrong passwords from all IPs together: a distributed guess gets nowhere either.
+    if (limited('login-global-fail', 'all', 30, 60 * 60 * 1000, false)) {
+      throw new HttpError(429, 'Admin login is locked for a while after too many wrong passwords.')
+    }
+    if (!(await passwordsMatch(password, expected))) {
+      limited('login-global-fail', 'all', 30, 60 * 60 * 1000)
+      throw new HttpError(401, 'Wrong password.')
+    }
     const token = randomToken()
-    await this.storage.put(`session:${token}`, Date.now() + SESSION_MS)
+    // Only the token's hash is stored: a leaked copy of the store holds no usable sessions.
+    await this.storage.put(`session:${await tokenHash(token)}`, Date.now() + SESSION_MS)
     return token
   }
 
   async validSession(token: string) {
     if (!/^[0-9a-f]{64}$/.test(token)) return false
-    const expires = Number(await this.storage.get<number>(`session:${token}`))
+    const key = `session:${await tokenHash(token)}`
+    const expires = Number(await this.storage.get<number>(key))
     if (!expires || expires < Date.now()) {
-      await this.storage.delete(`session:${token}`)
+      await this.storage.delete(key)
       return false
     }
     return true
@@ -665,7 +773,7 @@ export class CosmeticsStore {
         const body = await readJson(request)
         const capeIds = Array.isArray(body.capeIds) ? body.capeIds.map(String) : []
         const wingIds = Array.isArray(body.wingIds) ? body.wingIds.map(String) : []
-        return send(200, await this.checkout(String(body.username || '').trim(), capeIds, body.collection === true, wingIds))
+        return send(200, await this.checkout(String(body.username || '').trim(), capeIds, body.collection === true, wingIds, ip))
       }
 
       if (path === '/api/early-access' && method === 'GET') return send(200, await this.earlyAccessStock())
@@ -688,6 +796,10 @@ export class CosmeticsStore {
       ) {
         const username = url.searchParams.get('username') || ''
         if (username && !USERNAME_RE.test(username)) throw new HttpError(400, 'Enter a valid Java Edition username.')
+        // A name lookup may ask Mojang: limited per IP (UUID lookups, used by the game, are not).
+        if (username && limited('lookup-name', ip, 120, 10 * 60 * 1000)) {
+          throw new HttpError(429, 'Too many lookups. Try again shortly.')
+        }
         return send(200, await this.lookup(url.searchParams.get('uuid') || '', username))
       }
       if (method === 'POST' && ['/api/cosmetics/grant', '/api/cosmetics', '/api/v1/cosmetics'].includes(path)) {
@@ -701,7 +813,7 @@ export class CosmeticsStore {
       }
       if (path === '/api/admin/logout' && method === 'POST') {
         const token = bearerToken(request)
-        if (token) await this.storage.delete(`session:${token}`)
+        if (/^[0-9a-f]{64}$/.test(token)) await this.storage.delete(`session:${await tokenHash(token)}`)
         return send(200, { ok: true })
       }
       if (path.startsWith('/api/admin/')) {

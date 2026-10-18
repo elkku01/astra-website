@@ -23,6 +23,9 @@ export type CheckoutSession = {
   payment_intent?: string | null
   client_reference_id?: string | null
   metadata?: Record<string, string>
+  mode?: string
+  currency?: string | null
+  amount_total?: number | null
 }
 
 export function stripeRequester(secretKey: string): StripeRequest {
@@ -54,9 +57,12 @@ export function checkoutForm(opts: {
   cancelUrl: string
   clientReferenceId: string
   metadata: Record<string, string>
+  /** Unix seconds when an unpaid checkout closes (Stripe allows 30 min to 24 h). */
+  expiresAt?: number
 }): URLSearchParams {
   const form = new URLSearchParams()
   form.set('mode', 'payment')
+  if (opts.expiresAt) form.set('expires_at', String(opts.expiresAt))
   form.set('managed_payments[enabled]', 'true')
   form.set('success_url', opts.successUrl)
   form.set('cancel_url', opts.cancelUrl)

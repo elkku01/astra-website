@@ -68,7 +68,20 @@ function makeStore() {
           const m = key.match(/^metadata\[(.+)\]$/)
           if (m) metadata[m[1]] = value
         })
-        const session: CheckoutSession = { id, url: `https://checkout.stripe.test/${id}`, payment_status: 'unpaid', metadata, payment_intent: `pi_${seq}` }
+        let amount = 0
+        form?.forEach((value, key) => {
+          if (/^line_items\[\d+\]\[price_data\]\[unit_amount\]$/.test(key)) amount += Number(value)
+        })
+        const session: CheckoutSession = {
+          id,
+          url: `https://checkout.stripe.test/${id}`,
+          payment_status: 'unpaid',
+          metadata,
+          payment_intent: `pi_${seq}`,
+          mode: 'payment',
+          currency: 'usd',
+          amount_total: amount,
+        }
         sessions.set(id, session)
         return session as unknown as Record<string, unknown>
       }
@@ -79,6 +92,17 @@ function makeStore() {
       throw new Error('No such checkout session')
     },
   })
+}
+
+function makeStoreWithLimit(limit: number) {
+  const made = makeStore() as unknown as { config: { collectionLimit: number } }
+  made.config.collectionLimit = limit
+  return made as unknown as CosmeticsStore
+}
+
+/** Clears per-IP limits only (the global admin-login brake stays). */
+function resetIpLimits() {
+  resetRateLimits(['login'])
 }
 
 beforeEach(() => {
@@ -404,4 +428,48 @@ test('early access: a name that does not belong to the account is never stored o
   assert.notEqual(String(byName.body.uuid || '').replace(/-/g, ''), ALICE.uuid.replace(/-/g, ''))
   const alice = await call('GET', `/api/cosmetics/owned?uuid=${ALICE.uuid}`)
   assert.notEqual(alice.body.username, 'Bob')
+})
+
+test('a paid session that costs less than its checkout, or another currency, grants nothing', async () => {
+  const cheap = await buy('Alice', [PAID.id])
+  cheap.amount_total = 1 // e.g. a session changed on the Stripe side
+  await webhook('checkout.session.completed', cheap)
+  assert.ok(!(await owned(ALICE.uuid)).includes(PAID.id))
+  assert.ok(storage.data.has(`flagged:${cheap.id}`))
+  // The return page cannot grant a flagged session either.
+  const status = await call('GET', `/api/checkout/status?session_id=${cheap.id}`)
+  assert.equal(status.body.complete, false)
+
+  const euros = await buy('Bob', [PAID.id])
+  euros.currency = 'eur'
+  await webhook('checkout.session.completed', euros)
+  assert.ok(!(await owned(BOB.uuid)).includes(PAID.id))
+})
+
+test('open collection checkouts hold a spot; expired ones give it back', async () => {
+  store = makeStoreWithLimit(1)
+  const res = await call('POST', '/api/checkout', { username: 'Alice', capeIds: [], collection: true })
+  assert.equal(res.status, 200)
+  assert.equal((await call('GET', '/api/collection-stock')).body.remaining, 0)
+  // Someone else cannot start one while Alice's is open.
+  assert.equal((await call('POST', '/api/checkout', { username: 'Bob', capeIds: [], collection: true })).status, 409)
+  await webhook('checkout.session.expired', { id: res.body.id })
+  assert.equal((await call('GET', '/api/collection-stock')).body.remaining, 1)
+  assert.equal((await call('POST', '/api/checkout', { username: 'Bob', capeIds: [], collection: true })).status, 200)
+})
+
+test('admin session tokens are stored only as hashes', async () => {
+  const login = await call('POST', '/api/admin/login', { password: PASSWORD })
+  const token = String(login.body.token)
+  assert.ok(![...storage.data.keys()].some((key) => key.includes(token)))
+  assert.equal((await call('GET', '/api/admin/players', undefined, { Authorization: `Bearer ${token}` })).status, 200)
+})
+
+test('many wrong admin passwords lock admin login for everyone', async () => {
+  for (let i = 0; i < 30; i += 1) {
+    resetIpLimits()
+    assert.equal((await call('POST', '/api/admin/login', { password: `wrong-${i}-xxxx` })).status, 401)
+  }
+  resetIpLimits()
+  assert.equal((await call('POST', '/api/admin/login', { password: PASSWORD })).status, 429)
 })

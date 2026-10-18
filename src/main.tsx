@@ -32,6 +32,20 @@ function ScrollToTop() {
   return null
 }
 
+// GitHub Pages cannot send frame-ancestors (a meta tag is ignored for it): never run inside
+// another site's frame, so the store and admin pages cannot be clickjacked.
+const framed = (() => {
+  try {
+    return window.top !== window.self
+  } catch {
+    return true
+  }
+})()
+if (framed) {
+  document.body.textContent = 'Open this page directly: https://elkku01.github.io/astra-website/'
+  throw new Error('Astra pages do not run inside frames.')
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <SessionProvider>

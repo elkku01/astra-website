@@ -12,13 +12,8 @@ export interface Env {
   COLLECTION_LIMIT?: string
 }
 
-const ALLOWED_ORIGINS = [
-  'https://elkku01.github.io',
-  'http://127.0.0.1:5173',
-  'http://localhost:5173',
-  'http://127.0.0.1:4173',
-  'http://localhost:4173',
-]
+// Production only: local dev servers run their own copy of the store (vite.config.ts).
+const ALLOWED_ORIGINS = ['https://elkku01.github.io']
 const LEGACY_KV_KEY = 'cosmetics-owned'
 
 /**
