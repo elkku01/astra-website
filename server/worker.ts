@@ -13,7 +13,7 @@ export interface Env {
 }
 
 // Production only: local dev servers run their own copy of the store (vite.config.ts).
-const ALLOWED_ORIGINS = ['https://elkku01.github.io']
+const ALLOWED_ORIGINS = ['https://astraclient.eu', 'https://www.astraclient.eu', 'https://elkku01.github.io']
 const LEGACY_KV_KEY = 'cosmetics-owned'
 
 /**
@@ -39,7 +39,7 @@ export class StoreDB {
         adminPassword: env.ADMIN_PASSWORD || '',
         stripeSecretKey: env.STRIPE_SECRET_KEY || '',
         stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET || '',
-        siteUrl: env.SITE_URL || 'https://elkku01.github.io/astra-website',
+        siteUrl: env.SITE_URL || 'https://astraclient.eu',
         collectionLimit: Math.max(1, Number(env.COLLECTION_LIMIT || 100) || 100),
         allowedOrigins: ALLOWED_ORIGINS,
         internalKey: env.INTERNAL_API_KEY || '',

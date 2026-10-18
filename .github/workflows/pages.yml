@@ -26,7 +26,7 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
-          VITE_BASE: /astra-website/
+          VITE_BASE: /
           VITE_UPDATES_REPO: elkku01/astra-client-updates
           VITE_STORE_API: https://astra-store.elmeri-liikonen-noobthepro.workers.dev/api
       - uses: actions/upload-pages-artifact@v3

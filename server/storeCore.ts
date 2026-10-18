@@ -45,7 +45,7 @@ export type StoreConfig = {
   adminPassword: string
   stripeSecretKey: string
   stripeWebhookSecret: string
-  /** Public site root for Stripe's return links, e.g. https://elkku01.github.io/astra-website */
+  /** Public site root for Stripe's return links, e.g. https://astraclient.eu */
   siteUrl: string
   collectionLimit: number
   allowedOrigins: string[]

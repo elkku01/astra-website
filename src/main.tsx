@@ -42,7 +42,7 @@ const framed = (() => {
   }
 })()
 if (framed) {
-  document.body.textContent = 'Open this page directly: https://elkku01.github.io/astra-website/'
+  document.body.textContent = 'Open this page directly: https://astraclient.eu/'
   throw new Error('Astra pages do not run inside frames.')
 }
 
