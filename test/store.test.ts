@@ -4,6 +4,7 @@ import { CosmeticsStore, importLegacyStore, resetRateLimits, type StoreStorage }
 import { signStripePayload, verifyStripeEvent, type CheckoutSession } from '../server/stripe.ts'
 import { INVALID_MINECRAFT_ACCOUNT } from '../src/store/minecraftAccount.ts'
 import { CAPES, COLLECTION_LAUNCH_PRICE, paidCapes } from '../src/store/capes.ts'
+import { DISCORD_CAPE_ID } from '../src/store/discordCape.ts'
 
 const ALICE = { username: 'Alice', uuid: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' }
 const BOB = { username: 'Bob', uuid: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' }
@@ -472,4 +473,37 @@ test('many wrong admin passwords lock admin login for everyone', async () => {
   }
   resetIpLimits()
   assert.equal((await call('POST', '/api/admin/login', { password: PASSWORD })).status, 429)
+})
+
+test('discord cloak: only through the internal key, gone when the member leaves or stops renewing', async () => {
+  const report = (uuid: string, discordId: string, member: boolean, key = INTERNAL_KEY) =>
+    call('POST', '/api/internal/discord-cape', { uuid, discordId, member }, { Authorization: `Bearer ${key}` })
+  const owned = async (uuid: string) =>
+    (await call('GET', `/api/cosmetics/owned?uuid=${uuid}`)).body.ownedCapeIds as string[]
+  const discord = '123456789012345678'
+
+  assert.equal((await call('POST', '/api/internal/discord-cape', { uuid: ALICE.uuid, discordId: discord, member: true })).status, 401)
+  assert.equal((await report(ALICE.uuid, discord, true, 'x'.repeat(48))).status, 401)
+  assert.equal((await report(ALICE.uuid, 'not-an-id', true)).status, 400)
+  assert.ok(!(await owned(ALICE.uuid)).includes(DISCORD_CAPE_ID))
+
+  // A member gets it; leaving takes it away at once.
+  assert.equal((await report(ALICE.uuid, discord, true)).body.active, true)
+  assert.ok((await owned(ALICE.uuid)).includes(DISCORD_CAPE_ID))
+  assert.equal((await report(ALICE.uuid, discord, false)).body.active, false)
+  assert.ok(!(await owned(ALICE.uuid)).includes(DISCORD_CAPE_ID))
+
+  // One Discord account holds it on one Minecraft account: moving it removes it from the first.
+  await report(ALICE.uuid, discord, true)
+  await report(BOB.uuid, discord, true)
+  assert.ok(!(await owned(ALICE.uuid)).includes(DISCORD_CAPE_ID))
+  assert.ok((await owned(BOB.uuid)).includes(DISCORD_CAPE_ID))
+
+  // Not renewed: it runs out by itself.
+  const hex = BOB.uuid.replace(/-/g, '')
+  storage.data.set(`discord-cape:${hex}`, { discordId: discord, until: Date.now() - 1 })
+  assert.ok(!(await owned(BOB.uuid)).includes(DISCORD_CAPE_ID))
+
+  // It is never sold, never part of the collection and never granted by an admin.
+  assert.ok(!CAPES.some((cape) => cape.id === DISCORD_CAPE_ID))
 })

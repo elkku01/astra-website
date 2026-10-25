@@ -318,6 +318,7 @@ function App() {
           <h4>Store</h4>
           <Link to="/store">Cosmetics</Link>
           <Link to="/store/my-cosmetics">My cosmetics</Link>
+          <Link to="/store?admin">Admin</Link>
         </div>
         <div>
           <h4>Support</h4>

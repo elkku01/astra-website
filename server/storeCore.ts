@@ -16,11 +16,14 @@
  *   intent:<checkout id>  what a checkout must cost: { cents, currency, collection }
  *   meta:holds            open collection checkouts: { <checkout id>: { until, uuid, ip } }
  *   flagged:<checkout id> a paid session that did not match its intent (never granted)
+ *   discord-cape:<uuidhex> { discordId, until }: Discord cloak while that member stays in the server
+ *   discord-user:<discord id> uuidhex holding that Discord account's cloak (one account each)
  */
 import { knownBadge } from '../src/store/badgeIds.ts'
 import { isFullCollection, knownCapeIds } from '../src/store/fulfillment.ts'
 import { EARLY_ACCESS_LIMIT, EARLY_ACCESS_WING, WINGS, knownWingIds } from '../src/store/wings.ts'
 import { CAPES, COLLECTION_LAUNCH_PRICE, freeCapeIds, paidCapes } from '../src/store/capes.ts'
+import { DISCORD_CAPE_ID, DISCORD_GRANT_MS } from '../src/store/discordCape.ts'
 import {
   INVALID_MINECRAFT_ACCOUNT,
   resolveMinecraftAccount,
@@ -92,6 +95,7 @@ const HOLD_MS = 30 * 60 * 1000
 const MAX_HOLDS_PER_IP = 3
 
 type Intent = { cents: number; currency: string; collection: boolean }
+type DiscordGrant = { discordId: string; until: number }
 type Hold = { until: number; uuid: string; ip: string }
 
 export function uuidKey(uuid = ''): string {
@@ -224,9 +228,49 @@ export class CosmeticsStore {
     if (!hex && name) hex = (await this.storage.get<string>(`name:${name}`)) || ''
     if (hex && name) await this.adoptLegacy(hex, name)
     const record = hex ? await this.player(hex) : null
-    return this.withFree(
+    const owned = this.withFree(
       record || { uuid: hex ? dashed(hex) : '', username, ownedCapeIds: [], collection: false },
     )
+    if (hex && (await this.discordCapeActive(hex))) {
+      owned.ownedCapeIds = [...owned.ownedCapeIds, DISCORD_CAPE_ID]
+    }
+    return owned
+  }
+
+  // ---- Discord cloak -------------------------------------------------------------------
+
+  private async discordCapeActive(hex: string) {
+    const grant = await this.storage.get<DiscordGrant>(`discord-cape:${hex}`)
+    return Boolean(grant && grant.until > Date.now())
+  }
+
+  /**
+   * The presence API reports a Discord membership check for a Mojang-verified player. A member
+   * gets (or keeps) the cloak for a while; a non-member loses it at once. One Discord account
+   * holds the cloak on one Minecraft account at a time.
+   */
+  async discordCape(uuid: string, discordId: string, member: boolean) {
+    const hex = uuidKey(uuid)
+    if (!hex) throw new HttpError(400, INVALID_MINECRAFT_ACCOUNT)
+    if (!/^\d{17,20}$/.test(discordId)) throw new HttpError(400, 'Invalid Discord account.')
+    return this.mutex.run(async () => {
+      const current = await this.storage.get<DiscordGrant>(`discord-cape:${hex}`)
+      if (!member) {
+        if (current && current.discordId === discordId) await this.storage.delete(`discord-cape:${hex}`)
+        if ((await this.storage.get<string>(`discord-user:${discordId}`)) === hex) await this.storage.delete(`discord-user:${discordId}`)
+        return { active: false, until: 0 }
+      }
+      const previous = await this.storage.get<string>(`discord-user:${discordId}`)
+      if (previous && previous !== hex) {
+        const moved = await this.storage.get<DiscordGrant>(`discord-cape:${previous}`)
+        if (moved && moved.discordId === discordId) await this.storage.delete(`discord-cape:${previous}`)
+      }
+      if (current && current.discordId !== discordId) await this.storage.delete(`discord-user:${current.discordId}`)
+      const until = Date.now() + DISCORD_GRANT_MS
+      await this.storage.put(`discord-cape:${hex}`, { discordId, until })
+      await this.storage.put(`discord-user:${discordId}`, hex)
+      return { active: true, until }
+    })
   }
 
   /**
@@ -783,6 +827,13 @@ export class CosmeticsStore {
         if (!(await this.internalAuthorized(request))) throw new HttpError(401, 'Unauthorized.')
         const body = await readJson(request)
         return send(200, await this.earlyAccess(String(body.uuid || ''), String(body.username || '').trim()))
+      }
+
+      // Server-to-server only: the presence API reports a Discord membership check.
+      if (path === '/api/internal/discord-cape' && method === 'POST') {
+        if (!(await this.internalAuthorized(request))) throw new HttpError(401, 'Unauthorized.')
+        const body = await readJson(request)
+        return send(200, await this.discordCape(String(body.uuid || ''), String(body.discordId || ''), body.member === true))
       }
 
       if (path === '/api/checkout/status' && method === 'GET') {

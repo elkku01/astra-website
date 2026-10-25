@@ -4,12 +4,13 @@ import { adminLogin, isAdminAuthed } from './admin'
 
 export default function AdminDock() {
   const navigate = useNavigate()
-  const [open, setOpen] = useState(false)
+  const { search } = useLocation()
+  // The footer's Admin link opens the store with ?admin: show the login box straight away.
+  const [open, setOpen] = useState(() => new URLSearchParams(search).has('admin'))
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const authed = isAdminAuthed()
-  const { search } = useLocation()
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
