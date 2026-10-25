@@ -9,8 +9,12 @@
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://minotar.net https://crafatar.com https://textures.minecraft.net https://mc-heads.net https://crafthead.net; connect-src 'self' https://api.github.com https://api.modrinth.com https://piston-meta.mojang.com https://api.mojang.com https://api.minecraftservices.com https://login.microsoftonline.com https://discordstatus.com https://playerdb.co https://minotar.net https://crafatar.com https://api.ashcon.app https://api.minetools.eu https://mc-heads.net https://textures.minecraft.net https://crafthead.net https://astra-store.elmeri-liikonen-noobthepro.workers.dev; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
+      content="default-src 'self'; script-src 'self' https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; frame-src https:; fenced-frame-src https:; connect-src 'self' https://api.github.com https://api.modrinth.com https://piston-meta.mojang.com https://api.mojang.com https://api.minecraftservices.com https://login.microsoftonline.com https://discordstatus.com https://playerdb.co https://minotar.net https://crafatar.com https://api.ashcon.app https://api.minetools.eu https://mc-heads.net https://textures.minecraft.net https://crafthead.net https://astra-store.elmeri-liikonen-noobthepro.workers.dev https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://*.adtrafficquality.google https://*.gstatic.com https://*.googleadservices.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
     />
+    <!-- Google AdSense. Ads load scripts, frames and images from many Google hosts, so the policy
+         above allows https: sources for those (inline scripts stay blocked). -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5733349887108636"
+     crossorigin="anonymous"></script>
     <meta
       name="description"
       content="Download Astra — launcher and client for Minecraft 1.8.9, 1.21.5, and 1.21.11. HUD, cloaks, friends, and one-click launch."
