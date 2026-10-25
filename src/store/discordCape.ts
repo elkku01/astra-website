@@ -5,7 +5,7 @@
  * the store; a grant that is not renewed runs out by itself.
  */
 export const DISCORD_CAPE_ID = 'donut'
-export const DISCORD_CAPE_NAME = 'Donut Cloak'
+export const DISCORD_CAPE_NAME = 'DonutSMP Finland Cloak'
 export const DISCORD_GUILD_ID = '1483442785691631677'
 export const DISCORD_INVITE = 'https://discord.gg/VyqSyrQS6'
 /** How long one confirmed membership keeps the cloak if no new check arrives. */

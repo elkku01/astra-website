@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { adminLogin, isAdminAuthed } from './admin'
 
@@ -7,6 +7,10 @@ export default function AdminDock() {
   const { search } = useLocation()
   // The footer's Admin link opens the store with ?admin: show the login box straight away.
   const [open, setOpen] = useState(() => new URLSearchParams(search).has('admin'))
+  // The footer's "Admin panel" link adds ?admin to the page already open: show the box then too.
+  useEffect(() => {
+    if (new URLSearchParams(search).has('admin')) setOpen(true)
+  }, [search])
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)

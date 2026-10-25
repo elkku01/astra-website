@@ -6,6 +6,7 @@ import AccountMenu from './AccountMenu'
 import SiteNav from '../SiteNav'
 import CheckoutModal from './CheckoutModal'
 import AdminDock from './AdminDock'
+import { isAdminAuthed } from './admin'
 import { useSession } from './session'
 import { startCheckout } from './checkout'
 import type { Wing } from './wings'
@@ -154,6 +155,8 @@ export default function StoreLayout() {
         <a href="https://discord.gg/byKpped2K" rel="noreferrer" target="_blank">
           Support (Discord)
         </a>
+        {/* Opens the admin password box (signed in already: straight to the panel). */}
+        <Link to={isAdminAuthed() ? '/store/admin' : { search: '?admin' }}>Admin panel</Link>
         <span>Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</span>
       </footer>
       <AdminDock />
